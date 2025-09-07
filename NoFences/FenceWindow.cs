@@ -38,6 +38,12 @@ namespace NoFences
         private int scrollHeight;
         private int scrollOffset;
 
+        // New fields for transparency and autohide
+        private bool isAutoHidden = false;
+        private Timer autoHideTimer;
+        private double normalOpacity = 1.0;
+        private bool isMouseInside = false;
+
         private readonly ThrottledExecution throttledMove = new ThrottledExecution(TimeSpan.FromSeconds(4));
         private readonly ThrottledExecution throttledResize = new ThrottledExecution(TimeSpan.FromSeconds(4));
 
@@ -70,7 +76,6 @@ namespace NoFences
 
             AllowDrop = true;
 
-
             this.fenceInfo = fenceInfo;
             Text = fenceInfo.Name;
             Location = new Point(fenceInfo.PosX, fenceInfo.PosY);
@@ -81,7 +86,121 @@ namespace NoFences
             prevHeight = Height;
             lockedToolStripMenuItem.Checked = fenceInfo.Locked;
             minifyToolStripMenuItem.Checked = fenceInfo.CanMinify;
+
+            // Initialize transparency and autohide
+            SetTransparency(fenceInfo.Transparency);
+            InitializeAutoHide();
+            
             Minify();
+        }
+
+        private void fenceSettingsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            FenceManager.Instance.ShowFenceSettings(fenceInfo);
+        }
+
+        private void globalSettingsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            FenceManager.Instance.ShowGlobalSettings();
+        }
+
+        // Add methods for external control from FenceManager
+        public void UpdateAutoHideState()
+        {
+            if (fenceInfo.AutoHide)
+            {
+                StartAutoHideTimer();
+            }
+            else
+            {
+                ShowFence();
+                StopAutoHideTimer();
+            }
+        }
+
+        public void ApplySettings()
+        {
+            // Apply transparency
+            SetTransparency(fenceInfo.Transparency);
+
+            // Apply auto-hide settings
+            autoHideTimer.Interval = fenceInfo.AutoHideDelay;
+            UpdateAutoHideState();
+
+            // Apply other settings
+            lockedToolStripMenuItem.Checked = fenceInfo.Locked;
+            minifyToolStripMenuItem.Checked = fenceInfo.CanMinify;
+
+            // Update title and size if changed
+            Text = fenceInfo.Name;
+            Width = fenceInfo.Width;
+            Height = fenceInfo.Height;
+
+            Refresh();
+            Save();
+        }
+
+        private void InitializeAutoHide()
+        {
+            autoHideTimer = new Timer();
+            autoHideTimer.Interval = fenceInfo.AutoHideDelay;
+            autoHideTimer.Tick += AutoHideTimer_Tick;
+        }
+
+        private void SetTransparency(int transparencyPercent)
+        {
+            // Clamp transparency between 25 and 100
+            transparencyPercent = Math.Max(25, Math.Min(100, transparencyPercent));
+            fenceInfo.Transparency = transparencyPercent;
+            
+            normalOpacity = transparencyPercent / 100.0;
+            if (!isAutoHidden)
+            {
+                this.Opacity = normalOpacity;
+            }
+            
+            Save();
+        }
+
+        private void AutoHideTimer_Tick(object sender, EventArgs e)
+        {
+            if (fenceInfo.AutoHide && !isMouseInside && !isMinified)
+            {
+                HideFence();
+            }
+            autoHideTimer.Stop();
+        }
+
+        private void HideFence()
+        {
+            if (!isAutoHidden)
+            {
+                isAutoHidden = true;
+                this.Opacity = 0.1; // Nearly invisible but still responsive to mouse
+            }
+        }
+
+        private void ShowFence()
+        {
+            if (isAutoHidden)
+            {
+                isAutoHidden = false;
+                this.Opacity = normalOpacity;
+            }
+        }
+
+        private void StartAutoHideTimer()
+        {
+            if (fenceInfo.AutoHide && !isAutoHidden)
+            {
+                autoHideTimer.Stop();
+                autoHideTimer.Start();
+            }
+        }
+
+        private void StopAutoHideTimer()
+        {
+            autoHideTimer.Stop();
         }
 
         protected override void WndProc(ref Message m)
@@ -152,6 +271,51 @@ namespace NoFences
             }
         }
 
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            // Handle keyboard shortcuts
+            if (keyData == (Keys.Control | Keys.Alt | Keys.T))
+            {
+                ToggleTransparency();
+                return true;
+            }
+            else if (keyData == (Keys.Control | Keys.Alt | Keys.S))
+            {
+                ShowAllFences();
+                return true;
+            }
+
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        private void ToggleTransparency()
+        {
+            // Cycle through transparency levels: 100 -> 75 -> 50 -> 25 -> 100
+            int newTransparency;
+            switch (fenceInfo.Transparency)
+            {
+                case 100:
+                    newTransparency = 75;
+                    break;
+                case 75:
+                    newTransparency = 50;
+                    break;
+                case 50:
+                    newTransparency = 25;
+                    break;
+                default:
+                    newTransparency = 100;
+                    break;
+            }
+            SetTransparency(newTransparency);
+        }
+
+        private void ShowAllFences()
+        {
+            // This will be implemented in FenceManager
+            FenceManager.Instance.ShowAllFences();
+        }
+
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show(this, "Really remove this fence?", "Remove", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -174,6 +338,12 @@ namespace NoFences
             deleteItemToolStripMenuItem.Visible = hoveringItem != null;
         }
 
+        private void FenceWindow_KeyDown(object sender, KeyEventArgs e)
+        {
+            // This handles the KeyDown event for the form
+            // ProcessCmdKey already handles our shortcuts, but this can be used for other keys
+        }
+
         private void FenceWindow_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop) && !lockedToolStripMenuItem.Checked)
@@ -182,12 +352,30 @@ namespace NoFences
 
         private void FenceWindow_DragDrop(object sender, DragEventArgs e)
         {
-            var dropped = (string[])e.Data.GetData(DataFormats.FileDrop);
-            foreach (var file in dropped)
-                if (!fenceInfo.Files.Contains(file) && ItemExists(file))
-                    fenceInfo.Files.Add(file);
-            Save();
-            Refresh();
+            try
+            {
+                var dropped = (string[])e.Data.GetData(DataFormats.FileDrop);
+                var addedFiles = 0;
+                
+                foreach (var file in dropped)
+                {
+                    if (!fenceInfo.Files.Contains(file) && ItemExists(file))
+                    {
+                        fenceInfo.Files.Add(file);
+                        addedFiles++;
+                    }
+                }
+                
+                if (addedFiles > 0)
+                {
+                    Save();
+                    Refresh();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to process dropped files: {ex.Message}");
+            }
         }
 
         private void FenceWindow_Resize(object sender, EventArgs e)
@@ -209,6 +397,10 @@ namespace NoFences
 
         private void FenceWindow_MouseEnter(object sender, EventArgs e)
         {
+            isMouseInside = true;
+            StopAutoHideTimer();
+            ShowFence();
+
             if (minifyToolStripMenuItem.Checked && isMinified)
             {
                 isMinified = false;
@@ -218,6 +410,8 @@ namespace NoFences
 
         private void FenceWindow_MouseLeave(object sender, EventArgs e)
         {
+            isMouseInside = false;
+            StartAutoHideTimer();
             Minify();
             selectedItem = null;
             Refresh();
@@ -243,7 +437,6 @@ namespace NoFences
             }
             fenceInfo.CanMinify = minifyToolStripMenuItem.Checked;
             Save();
-
         }
 
         private void FenceWindow_Click(object sender, EventArgs e)
@@ -307,8 +500,6 @@ namespace NoFences
 
                 scrollOffset = Math.Min(scrollOffset, scrollHeight);
             }
-
-
 
             // Click handlers
             if (shouldUpdateSelection && !hasSelectionUpdated)
@@ -409,12 +600,38 @@ namespace NoFences
                 Application.Exit();
         }
 
+        // Add method to expose FenceInfo for manager
+        public FenceInfo GetFenceInfo()
+        {
+            return fenceInfo;
+        }
+
+        // Methods for external control
+        public void ForceShow()
+        {
+            ShowFence();
+            StopAutoHideTimer();
+        }
+
+        public void ForceHide()
+        {
+            HideFence();
+        }
+
+        // Improve the Save method with better error handling
         private readonly object saveLock = new object();
         private void Save()
         {
             lock (saveLock)
             {
-                FenceManager.Instance.UpdateFence(fenceInfo);
+                try
+                {
+                    FenceManager.Instance.UpdateFence(fenceInfo);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to save fence {fenceInfo.Name}: {ex.Message}");
+                }
             }
         }
 
@@ -492,11 +709,18 @@ namespace NoFences
             Invalidate();
         }
 
+        // Add validation for file operations
         private bool ItemExists(string path)
         {
-            return File.Exists(path) || Directory.Exists(path);
+            try
+            {
+                return File.Exists(path) || Directory.Exists(path);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
     }
-
 }
 

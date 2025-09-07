@@ -17,6 +17,15 @@
             {
                 components.Dispose();
             }
+            if (disposing)
+            {
+                titleFont?.Dispose();
+                iconFont?.Dispose();
+                thumbnailProvider?.Dispose();
+                throttledMove?.Dispose();
+                throttledResize?.Dispose();
+                autoHideTimer?.Dispose();
+            }
             base.Dispose(disposing);
         }
 
@@ -32,10 +41,13 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FenceWindow));
             this.appContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.deleteItemToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.lockedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.minifyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.fenceSettingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.globalSettingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.renameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.titleSizeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.newFenceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -47,10 +59,11 @@
             resources.ApplyResources(this.appContextMenu, "appContextMenu");
             this.appContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.deleteItemToolStripMenuItem,
+            this.toolStripSeparator2,
             this.lockedToolStripMenuItem,
             this.minifyToolStripMenuItem,
+            this.settingsToolStripMenuItem,
             this.renameToolStripMenuItem,
-            this.titleSizeToolStripMenuItem,
             this.toolStripSeparator1,
             this.newFenceToolStripMenuItem,
             this.exitToolStripMenuItem});
@@ -63,6 +76,11 @@
             resources.ApplyResources(this.deleteItemToolStripMenuItem, "deleteItemToolStripMenuItem");
             this.deleteItemToolStripMenuItem.Name = "deleteItemToolStripMenuItem";
             this.deleteItemToolStripMenuItem.Click += new System.EventHandler(this.deleteItemToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(149, 6);
             // 
             // lockedToolStripMenuItem
             // 
@@ -78,17 +96,34 @@
             this.minifyToolStripMenuItem.Name = "minifyToolStripMenuItem";
             this.minifyToolStripMenuItem.Click += new System.EventHandler(this.minifyToolStripMenuItem_Click);
             // 
+            // settingsToolStripMenuItem
+            // 
+            this.settingsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.fenceSettingsToolStripMenuItem,
+            this.globalSettingsToolStripMenuItem});
+            this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
+            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.settingsToolStripMenuItem.Text = "Settings";
+            // 
+            // fenceSettingsToolStripMenuItem
+            // 
+            this.fenceSettingsToolStripMenuItem.Name = "fenceSettingsToolStripMenuItem";
+            this.fenceSettingsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.fenceSettingsToolStripMenuItem.Text = "Fence Settings...";
+            this.fenceSettingsToolStripMenuItem.Click += new System.EventHandler(this.fenceSettingsToolStripMenuItem_Click);
+            // 
+            // globalSettingsToolStripMenuItem
+            // 
+            this.globalSettingsToolStripMenuItem.Name = "globalSettingsToolStripMenuItem";
+            this.globalSettingsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.globalSettingsToolStripMenuItem.Text = "Global Settings...";
+            this.globalSettingsToolStripMenuItem.Click += new System.EventHandler(this.globalSettingsToolStripMenuItem_Click);
+            // 
             // renameToolStripMenuItem
             // 
             resources.ApplyResources(this.renameToolStripMenuItem, "renameToolStripMenuItem");
             this.renameToolStripMenuItem.Name = "renameToolStripMenuItem";
             this.renameToolStripMenuItem.Click += new System.EventHandler(this.renameToolStripMenuItem_Click);
-            // 
-            // titleSizeToolStripMenuItem
-            // 
-            resources.ApplyResources(this.titleSizeToolStripMenuItem, "titleSizeToolStripMenuItem");
-            this.titleSizeToolStripMenuItem.Name = "titleSizeToolStripMenuItem";
-            this.titleSizeToolStripMenuItem.Click += new System.EventHandler(this.titleSizeToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
@@ -115,6 +150,7 @@
             this.DoubleBuffered = true;
             this.ForeColor = System.Drawing.SystemColors.ControlText;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.KeyPreview = true;
             this.MinimizeBox = false;
             this.Name = "FenceWindow";
             this.ShowIcon = false;
@@ -125,6 +161,7 @@
             this.Click += new System.EventHandler(this.FenceWindow_Click);
             this.DragDrop += new System.Windows.Forms.DragEventHandler(this.FenceWindow_DragDrop);
             this.DragEnter += new System.Windows.Forms.DragEventHandler(this.FenceWindow_DragEnter);
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FenceWindow_KeyDown);
             this.Paint += new System.Windows.Forms.PaintEventHandler(this.FenceWindow_Paint);
             this.DoubleClick += new System.EventHandler(this.FenceWindow_DoubleClick);
             this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.FenceWindow_MouseClick);
@@ -147,7 +184,10 @@
         private System.Windows.Forms.ToolStripMenuItem renameToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem deleteItemToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem newFenceToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem titleSizeToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem fenceSettingsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem globalSettingsToolStripMenuItem;
     }
 }
 

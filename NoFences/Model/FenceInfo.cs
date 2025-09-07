@@ -36,6 +36,21 @@ namespace NoFences.Model
         /// </summary>
         public int TitleHeight { get; set; } = 35;
 
+        /// <summary>
+        /// Gets or sets the transparency level (0-100, where 100 is fully opaque)
+        /// </summary>
+        public int Transparency { get; set; } = 100;
+
+        /// <summary>
+        /// Gets or sets whether the fence should auto-hide when not in use
+        /// </summary>
+        public bool AutoHide { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets the auto-hide delay in milliseconds
+        /// </summary>
+        public int AutoHideDelay { get; set; } = 2000;
+
         public List<string> Files { get; set; } = new List<string>();
 
         public FenceInfo()
