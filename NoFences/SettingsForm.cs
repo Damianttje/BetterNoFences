@@ -90,6 +90,10 @@ namespace NoFences
             {
                 SetupFenceControls();
             }
+            else
+            {
+                SetupGlobalControls();
+            }
         }
 
         private void SetupFenceControls()
@@ -127,12 +131,34 @@ namespace NoFences
             this.tabAppearance.Controls.AddRange(new Control[] { lblTransparency, numTransparency, chkAutoHide, numAutoHideDelay });
         }
 
+        private void SetupGlobalControls()
+        {
+            // Global settings controls
+            var btnShowAllFences = new Button 
+            { 
+                Text = "Show All Fences", 
+                Location = new System.Drawing.Point(10, 60),
+                Size = new System.Drawing.Size(150, 30)
+            };
+            btnShowAllFences.Click += (s, e) => FenceManager.Instance.ShowAllFences();
+
+            var lblInfo = new Label 
+            { 
+                Text = "Global hotkeys:\nCtrl+Alt+H - Toggle auto-hide\nCtrl+Alt+S - Show all fences\nCtrl+Alt+T - Toggle transparency", 
+                Location = new System.Drawing.Point(10, 100),
+                Size = new System.Drawing.Size(400, 80),
+                AutoSize = false
+            };
+
+            this.tabGeneral.Controls.AddRange(new Control[] { btnShowAllFences, lblInfo });
+        }
+
         private void LoadSettings()
         {
             if (isGlobalSettings)
             {
                 // Load global settings
-                Text = "NoFences - Global Settings";
+                Text = "BetterNoFences - Global Settings";
             }
             else if (selectedFenceInfo != null)
             {
@@ -179,7 +205,10 @@ namespace NoFences
         {
             if (selectedFenceInfo != null)
             {
-                selectedFenceInfo.Name = txtFenceName.Text;
+                var oldName = selectedFenceInfo.Name;
+                var newName = txtFenceName.Text;
+                
+                selectedFenceInfo.Name = newName;
                 selectedFenceInfo.Transparency = (int)numTransparency.Value;
                 selectedFenceInfo.AutoHide = chkAutoHide.Checked;
                 selectedFenceInfo.AutoHideDelay = (int)numAutoHideDelay.Value;

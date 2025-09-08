@@ -22,6 +22,7 @@ namespace NoFences
         private const float shadowDist = 1.5f;
 
         private readonly FenceInfo fenceInfo;
+        private readonly Logger logger;
 
         private Font titleFont;
         private Font iconFont;
@@ -60,6 +61,9 @@ namespace NoFences
 
         public FenceWindow(FenceInfo fenceInfo)
         {
+            logger = Logger.Instance;
+            logger.Debug($"Creating fence window for '{fenceInfo.Name}'", "FenceWindow");
+            
             InitializeComponent();
             DropShadow.ApplyShadows(this);
             BlurUtil.EnableBlur(Handle);
@@ -92,6 +96,8 @@ namespace NoFences
             InitializeAutoHide();
             
             Minify();
+            
+            logger.Info($"Fence window '{fenceInfo.Name}' created successfully at ({fenceInfo.PosX}, {fenceInfo.PosY})", "FenceWindow");
         }
 
         private void fenceSettingsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -205,8 +211,6 @@ namespace NoFences
 
         protected override void WndProc(ref Message m)
         {
-            //Console.WriteLine(m.Msg.ToString("X4"));
-
             // Remove border
             if (m.Msg == 0x0083)
             {
@@ -357,24 +361,32 @@ namespace NoFences
                 var dropped = (string[])e.Data.GetData(DataFormats.FileDrop);
                 var addedFiles = 0;
                 
+                logger.Debug($"Processing {dropped.Length} dropped files", "FenceWindow");
+                
                 foreach (var file in dropped)
                 {
                     if (!fenceInfo.Files.Contains(file) && ItemExists(file))
                     {
                         fenceInfo.Files.Add(file);
                         addedFiles++;
+                        logger.Debug($"Added file to fence: {file}", "FenceWindow");
+                    }
+                    else
+                    {
+                        logger.Debug($"Skipped file (already exists or invalid): {file}", "FenceWindow");
                     }
                 }
                 
                 if (addedFiles > 0)
                 {
+                    logger.Info($"Added {addedFiles} files to fence '{fenceInfo.Name}'", "FenceWindow");
                     Save();
                     Refresh();
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to process dropped files: {ex.Message}");
+                logger.Error($"Failed to process dropped files for fence '{fenceInfo.Name}'", "FenceWindow", ex);
             }
         }
 
@@ -627,10 +639,11 @@ namespace NoFences
                 try
                 {
                     FenceManager.Instance.UpdateFence(fenceInfo);
+                    logger.Debug($"Fence '{fenceInfo.Name}' saved successfully", "FenceWindow");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to save fence {fenceInfo.Name}: {ex.Message}");
+                    logger.Error($"Failed to save fence '{fenceInfo.Name}'", "FenceWindow", ex);
                 }
             }
         }
@@ -714,10 +727,16 @@ namespace NoFences
         {
             try
             {
-                return File.Exists(path) || Directory.Exists(path);
+                var exists = File.Exists(path) || Directory.Exists(path);
+                if (!exists)
+                {
+                    logger.Warning($"Item does not exist: {path}", "FenceWindow");
+                }
+                return exists;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logger.Error($"Error checking if item exists: {path}", "FenceWindow", ex);
                 return false;
             }
         }
