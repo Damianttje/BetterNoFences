@@ -1,33 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using NoFences.UI;
+using System;
 using System.Windows.Forms;
 
 namespace NoFences
 {
-    public partial class EditDialog : Form
+    public class EditDialog : Form
     {
+        private ModernEditDialog modernDialog;
+
         public EditDialog(string oldName)
         {
-            InitializeComponent();
-            tbName.Text = oldName;
+            modernDialog = new ModernEditDialog("Edit Name", oldName, "New name:");
         }
 
-        public string NewName => tbName.Text;
+        public string NewName => modernDialog.NewName;
 
-        private void btnOk_Click(object sender, EventArgs e)
+        public new DialogResult ShowDialog()
         {
-            DialogResult = DialogResult.OK;
+            return modernDialog.ShowDialog();
         }
 
-        private void btnCancel_Click(object sender, EventArgs e)
+        public new DialogResult ShowDialog(IWin32Window owner)
         {
-            DialogResult = DialogResult.Cancel;
+            return modernDialog.ShowDialog(owner);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                modernDialog?.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }
