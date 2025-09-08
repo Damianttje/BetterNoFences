@@ -91,8 +91,8 @@ namespace NoFences
 
                             trayIcon.DoubleClick += (s, e) =>
                             {
-                                logger.Debug("Tray icon double-clicked", "Main");
-                                MessageBox.Show("BetterNoFences is running in the background.\n\nRight-click the tray icon to access options or view logs.", "NoFences", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                logger.Debug("Tray icon double-clicked - opening settings", "Main");
+                                FenceManager.Instance.ShowGlobalSettings();
                             };
 
                             try

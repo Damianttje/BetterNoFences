@@ -157,9 +157,23 @@ namespace NoFences.Model
                     PosY = 250,
                     Height = settings.DefaultFenceHeight,
                     Width = settings.DefaultFenceWidth,
+                    TitleHeight = settings.DefaultTitleHeight,
                     Transparency = settings.DefaultTransparency,
                     AutoHide = settings.DefaultAutoHide,
-                    AutoHideDelay = settings.DefaultAutoHideDelay
+                    AutoHideDelay = settings.DefaultAutoHideDelay,
+                    BackgroundColor = settings.DefaultBackgroundColor,
+                    TitleBackgroundColor = settings.DefaultTitleBackgroundColor,
+                    TextColor = settings.DefaultTextColor,
+                    BorderColor = settings.DefaultBorderColor,
+                    BackgroundTransparency = settings.DefaultBackgroundTransparency,
+                    TitleBackgroundTransparency = settings.DefaultTitleBackgroundTransparency,
+                    TextTransparency = settings.DefaultTextTransparency,
+                    BorderTransparency = settings.DefaultBorderTransparency,
+                    BorderWidth = settings.DefaultBorderWidth,
+                    CornerRadius = settings.DefaultCornerRadius,
+                    ShowShadow = settings.DefaultShowShadow,
+                    IconSize = settings.DefaultIconSize,
+                    ItemSpacing = settings.DefaultItemSpacing
                 };
 
                 UpdateFence(fenceInfo);
@@ -355,7 +369,7 @@ namespace NoFences.Model
             try
             {
                 logger.Debug("Opening global settings dialog", "FenceManager");
-                var settingsForm = new SettingsForm();
+                var settingsForm = new GlobalSettingsForm();
                 if (settingsForm.ShowDialog() == DialogResult.OK)
                 {
                     // Refresh global hotkeys if they changed
@@ -374,7 +388,7 @@ namespace NoFences.Model
             try
             {
                 logger.Debug($"Opening settings for fence '{fenceInfo.Name}'", "FenceManager");
-                var settingsForm = new SettingsForm(fenceInfo);
+                var settingsForm = new GlobalSettingsForm();
                 if (settingsForm.ShowDialog() == DialogResult.OK)
                 {
                     // Find the fence window and refresh its settings
@@ -389,9 +403,71 @@ namespace NoFences.Model
             }
         }
 
+        public void HighlightFence(Guid fenceId)
+        {
+            try
+            {
+                logger.Debug($"Highlighting fence with ID: {fenceId}", "FenceManager");
+                var fenceWindow = activeFences.FirstOrDefault(f => f.GetFenceInfo().Id == fenceId);
+                if (fenceWindow != null)
+                {
+                    fenceWindow.HighlightFence();
+                    logger.Info($"Highlighted fence '{fenceWindow.GetFenceInfo().Name}'", "FenceManager");
+                }
+                else
+                {
+                    logger.Warning($"Fence with ID {fenceId} not found for highlighting", "FenceManager");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Failed to highlight fence with ID {fenceId}", "FenceManager", ex);
+            }
+        }
+
+        public void ApplySettingsToFence(FenceInfo fenceInfo)
+        {
+            try
+            {
+                logger.Debug($"Applying settings to fence '{fenceInfo.Name}'", "FenceManager");
+                var fenceWindow = activeFences.FirstOrDefault(f => f.GetFenceInfo().Id == fenceInfo.Id);
+                if (fenceWindow != null)
+                {
+                    // Update the fence window's internal fence info reference
+                    fenceWindow.UpdateFenceInfo(fenceInfo);
+                    fenceWindow.ApplySettings();
+                    logger.Info($"Applied settings to fence '{fenceInfo.Name}'", "FenceManager");
+                }
+                else
+                {
+                    logger.Warning($"Fence '{fenceInfo.Name}' not found for settings application", "FenceManager");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Failed to apply settings to fence '{fenceInfo.Name}'", "FenceManager", ex);
+            }
+        }
+
         public List<FenceInfo> GetAllFenceInfos()
         {
-            return activeFences.Select(f => f.GetFenceInfo()).ToList();
+            try
+            {
+                // Return current fence info from active fences
+                var result = new List<FenceInfo>();
+                foreach (var fence in activeFences.ToList())
+                {
+                    var fenceInfo = fence.GetFenceInfo();
+                    result.Add(fenceInfo);
+                }
+                logger.Debug($"Retrieved {result.Count} fence infos", "FenceManager");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Failed to get all fence infos", "FenceManager", ex);
+                return new List<FenceInfo>();
+            }
         }
 
         public int GetActiveFenceCount()
