@@ -1,5 +1,3 @@
-# NoFences
+# BetterNoFences
 
-Didn't want to pay 11€, made my own.
-
-![Screenshot](screenshot.png "NoFences in action")
+[Fork of github.com/Twometer/NoFences](https://github.com/Twometer/NoFences)
