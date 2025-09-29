@@ -9,7 +9,7 @@
     <ApplicationIcon>AppIcon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <AssemblyName>BetterNoFences</AssemblyName>
+    <AssemblyName>Fenceless</AssemblyName>
     <RootNamespace>NoFences</RootNamespace>
     <AssemblyTitle>BetterNoFences</AssemblyTitle>
     <AssemblyDescription>Open Source Alternative to 'Stardock Fences'</AssemblyDescription>
