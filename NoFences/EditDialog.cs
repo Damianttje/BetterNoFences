@@ -6,11 +6,11 @@ namespace NoFences
 {
     public class EditDialog : Form
     {
-        private ModernEditDialog modernDialog;
+        private UI.EditDialog modernDialog;
 
         public EditDialog(string oldName)
         {
-            modernDialog = new ModernEditDialog("Edit Name", oldName, "New name:");
+            modernDialog = new UI.EditDialog("Edit Name", oldName, "New name:");
         }
 
         public string NewName => modernDialog.NewName;

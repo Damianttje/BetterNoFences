@@ -1,6 +1,7 @@
 ﻿using NoFences.Model;
 using NoFences.Win32;
 using NoFences.Util;
+using NoFences.UI;
 using System;
 using System.Drawing;
 using System.IO;
@@ -22,6 +23,8 @@ namespace NoFences
         {
             try
             {
+                CustomMessageBox.Show("test");
+
                 // Initialize logging first
                 logger = Logger.Instance;
                 
@@ -63,15 +66,20 @@ namespace NoFences
 
                             var contextMenu = new ContextMenuStrip();
 
-                            // Add Add Fence menu item
+                            // Add Fence menu item with sub menu for fence type
                             var addFenceMenuItem = new ToolStripMenuItem("Add Fence");
-                            addFenceMenuItem.Click += (s, e) =>
+
+                            var normalFenceMenuItem = new ToolStripMenuItem("Normal Fence");
+                            normalFenceMenuItem.Click += (s, e) =>
                             {
-                                logger.Info("Add Fence requested from tray menu", "Main");
+                                logger.Info("Add Normal Fence requested from tray menu", "Main");
                                 FenceManager.Instance.CreateFence("New Fence");
                             };
+
+                            addFenceMenuItem.DropDownItems.Add(normalFenceMenuItem);
+
                             contextMenu.Items.Add(addFenceMenuItem);
-                            
+
                             // Add Log Viewer menu item
                             var logViewerMenuItem = new ToolStripMenuItem("View Logs");
                             logViewerMenuItem.Click += (s, e) => ShowLogViewer();

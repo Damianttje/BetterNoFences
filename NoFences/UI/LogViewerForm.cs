@@ -9,7 +9,7 @@ using System.Windows.Forms;
 
 namespace NoFences.UI
 {
-    public partial class ModernLogViewerForm : DarkForm
+    public partial class LogViewerForm : DarkForm
     {
         private Panel toolbarPanel;
         private DarkButton refreshButton;
@@ -26,7 +26,7 @@ namespace NoFences.UI
         private DateTime lastUpdateTime;
         private Timer refreshTimer;
 
-        public ModernLogViewerForm()
+        public LogViewerForm()
         {
             logger = Logger.Instance;
             var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BetterNoFences");

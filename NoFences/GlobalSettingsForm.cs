@@ -7,7 +7,7 @@ namespace NoFences
 {
     public partial class GlobalSettingsForm : Form
     {
-        private ModernSettingsForm modernSettingsForm;
+        private SettingsForm modernSettingsForm;
         private readonly Logger logger;
 
         public GlobalSettingsForm()
@@ -15,7 +15,7 @@ namespace NoFences
             logger = Logger.Instance;
             logger.Debug("Creating global settings form wrapper", "GlobalSettingsForm");
             
-            modernSettingsForm = new ModernSettingsForm();
+            modernSettingsForm = new SettingsForm();
         }
 
         public new DialogResult ShowDialog()

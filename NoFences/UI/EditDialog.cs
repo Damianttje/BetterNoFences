@@ -6,22 +6,22 @@ using System.Windows.Forms;
 
 namespace NoFences.UI
 {
-    public partial class ModernInputDialog : DarkForm
+    public partial class EditDialog : DarkForm
     {
         private DarkLabel promptLabel;
-        private DarkTextBox inputTextBox;
+        private DarkTextBox nameTextBox;
         private DarkButton btnOK;
         private DarkButton btnCancel;
 
-        public string InputText => inputTextBox.Text;
+        public string NewName => nameTextBox.Text;
 
-        public ModernInputDialog(string title, string prompt, string defaultValue = "")
+        public EditDialog(string title, string currentName = "", string prompt = "Name:")
         {
             InitializeComponent();
             this.Text = title;
             promptLabel.Text = prompt;
-            inputTextBox.Text = defaultValue;
-            inputTextBox.SelectAll();
+            nameTextBox.Text = currentName;
+            nameTextBox.SelectAll();
         }
 
         private void InitializeComponent()
@@ -29,7 +29,7 @@ namespace NoFences.UI
             this.SuspendLayout();
 
             // Form setup
-            this.Size = new Size(400, 180);
+            this.Size = new Size(420, 200);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -39,16 +39,16 @@ namespace NoFences.UI
             // Controls
             promptLabel = new DarkLabel
             {
-                Location = new Point(20, 20),
+                Location = new Point(20, 25),
                 Size = new Size(350, 20),
-                Text = "Prompt:",
+                Text = "Name:",
                 AutoSize = true
             };
 
-            inputTextBox = new DarkTextBox
+            nameTextBox = new DarkTextBox
             {
-                Location = new Point(20, 50),
-                Size = new Size(340, 23),
+                Location = new Point(20, 55),
+                Size = new Size(360, 23),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
 
@@ -60,21 +60,21 @@ namespace NoFences.UI
                 BackColor = Color.FromArgb(60, 63, 65)
             };
 
-            btnOK = new DarkButton
-            {
-                Text = "OK",
-                Size = new Size(80, 30),
-                Location = new Point(200, 10),
-                DialogResult = DialogResult.OK,
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Right
-            };
-
             btnCancel = new DarkButton
             {
                 Text = "Cancel",
                 Size = new Size(80, 30),
-                Location = new Point(290, 10),
+                Location = new Point(300, 10),
                 DialogResult = DialogResult.Cancel,
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+            };
+
+            btnOK = new DarkButton
+            {
+                Text = "OK",
+                Size = new Size(80, 30),
+                Location = new Point(210, 10),
+                DialogResult = DialogResult.OK,
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Right
             };
 
@@ -86,7 +86,7 @@ namespace NoFences.UI
                 Dock = DockStyle.Fill,
                 BackColor = Color.FromArgb(60, 63, 65)
             };
-            contentPanel.Controls.AddRange(new Control[] { promptLabel, inputTextBox });
+            contentPanel.Controls.AddRange(new Control[] { promptLabel, nameTextBox });
 
             // Add panels to form
             this.Controls.Add(contentPanel);
@@ -98,17 +98,17 @@ namespace NoFences.UI
 
             // Event handlers
             btnOK.Click += BtnOK_Click;
-            inputTextBox.KeyDown += InputTextBox_KeyDown;
+            nameTextBox.KeyDown += NameTextBox_KeyDown;
 
             this.ResumeLayout(false);
         }
 
         private void BtnOK_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(inputTextBox.Text))
+            if (string.IsNullOrWhiteSpace(nameTextBox.Text))
             {
-                MessageBox.Show("Please enter a valid value.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                inputTextBox.Focus();
+                MessageBox.Show("Please enter a valid name.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                nameTextBox.Focus();
                 return;
             }
 
@@ -116,7 +116,7 @@ namespace NoFences.UI
             this.Close();
         }
 
-        private void InputTextBox_KeyDown(object sender, KeyEventArgs e)
+        private void NameTextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
             {
@@ -127,8 +127,8 @@ namespace NoFences.UI
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
-            inputTextBox.Focus();
-            inputTextBox.SelectAll();
+            nameTextBox.Focus();
+            nameTextBox.SelectAll();
         }
     }
 }

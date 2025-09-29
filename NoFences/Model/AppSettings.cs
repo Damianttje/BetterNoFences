@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using System;
 using System.IO;
+using System.Windows.Forms;
 using NoFences.Util;
 
 namespace NoFences.Model
@@ -180,9 +181,9 @@ namespace NoFences.Model
                     logger.Debug($"Logging settings applied - Level: {LogLevel}, File: {EnableFileLogging}", "AppSettings");
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // Ignore errors during logging configuration
+                MessageBox.Show($@"Failed to apply logging settings: {e}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         

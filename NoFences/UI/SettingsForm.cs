@@ -12,7 +12,7 @@ using System.Windows.Forms;
 
 namespace NoFences.UI
 {
-    public partial class ModernSettingsForm : DarkForm
+    public partial class SettingsForm : DarkForm
     {
         private readonly Logger logger;
         private List<FenceInfo> fenceInfos;
@@ -42,7 +42,7 @@ namespace NoFences.UI
         private DarkButton btnCancel;
         private DarkButton btnApply;
 
-        public ModernSettingsForm()
+        public SettingsForm()
         {
             logger = Logger.Instance;
             logger.Debug("Creating modern settings form", "ModernSettingsForm");
@@ -1010,7 +1010,7 @@ namespace NoFences.UI
 
         private void BtnAdd_Click(object sender, EventArgs e)
         {
-            var dialog = new ModernInputDialog("New Fence", "Enter fence name:");
+            var dialog = new InputDialog("New Fence", "Enter fence name:");
             if (dialog.ShowDialog(this) == DialogResult.OK)
             {
                 FenceManager.Instance.CreateFence(dialog.InputText);

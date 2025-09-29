@@ -7,13 +7,13 @@ namespace NoFences
 {
     public partial class LogViewerForm : Form
     {
-        private ModernLogViewerForm modernLogViewer;
+        private UI.LogViewerForm modernLogViewer;
         private readonly Logger logger;
 
         public LogViewerForm()
         {
             logger = Logger.Instance;
-            modernLogViewer = new ModernLogViewerForm();
+            modernLogViewer = new UI.LogViewerForm();
         }
 
         public new void Show()
