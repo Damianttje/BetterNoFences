@@ -74,7 +74,7 @@ namespace NoFences.Model
                 logger = null;
             }
             
-            var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BetterNoFences");
+            var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenceless");
             settingsPath = Path.Combine(appDataPath, "settings.json");
             LoadSettings();
             

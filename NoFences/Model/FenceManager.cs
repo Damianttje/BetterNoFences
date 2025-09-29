@@ -23,7 +23,7 @@ namespace NoFences.Model
         public FenceManager()
         {
             logger = Logger.Instance;
-            basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BetterNoFences");
+            basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenceless");
             EnsureDirectoryExists(basePath);
             logger.Info($"FenceManager initialized with base path: {basePath}", "FenceManager");
             InitializeGlobalHotkeys();

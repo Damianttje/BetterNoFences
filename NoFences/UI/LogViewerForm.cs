@@ -29,7 +29,7 @@ namespace NoFences.UI
         public LogViewerForm()
         {
             logger = Logger.Instance;
-            var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BetterNoFences");
+            var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenceless");
             logFilePath = Path.Combine(appDataPath, "application.log");
             
             InitializeComponent();
@@ -42,7 +42,7 @@ namespace NoFences.UI
             this.SuspendLayout();
 
             // Form setup with proper controls for dragging and closing
-            this.Text = "BetterNoFences - Log Viewer";
+            this.Text = "Fenceless - Log Viewer";
             this.Size = new Size(1000, 700);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.MinimumSize = new Size(800, 500);
@@ -298,7 +298,7 @@ namespace NoFences.UI
             {
                 saveDialog.Filter = "Text files (*.txt)|*.txt|Log files (*.log)|*.log|All files (*.*)|*.*";
                 saveDialog.DefaultExt = "txt";
-                saveDialog.FileName = $"BetterNoFences_Log_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+                saveDialog.FileName = $"Fenceless_Log_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
                 saveDialog.Title = "Save Log File";
 
                 if (saveDialog.ShowDialog() == DialogResult.OK)

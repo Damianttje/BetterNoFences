@@ -11,9 +11,9 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AssemblyName>Fenceless</AssemblyName>
     <RootNamespace>NoFences</RootNamespace>
-    <AssemblyTitle>BetterNoFences</AssemblyTitle>
+    <AssemblyTitle>Fenceless</AssemblyTitle>
     <AssemblyDescription>Open Source Alternative to 'Stardock Fences'</AssemblyDescription>
-    <AssemblyProduct>BetterNoFences</AssemblyProduct>
+    <AssemblyProduct>Fenceless</AssemblyProduct>
     <AssemblyCopyright>Copyright © Damianttje 2025</AssemblyCopyright>
     <AssemblyVersion>1.6.0.0</AssemblyVersion>
     <FileVersion>1.6.0.0</FileVersion>

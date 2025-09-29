@@ -32,7 +32,7 @@ namespace NoFences.Util
 
         private Logger()
         {
-            var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BetterNoFences");
+            var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenceless");
             Directory.CreateDirectory(appDataPath);
             _logFilePath = Path.Combine(appDataPath, "application.log");
 

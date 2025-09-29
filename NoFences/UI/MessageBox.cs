@@ -13,7 +13,7 @@ namespace NoFences.UI
 {
     public class CustomMessageBox : DarkForm
     {
-        public CustomMessageBox(string message, string title = "BetterNoFences | Message", MessageBoxButtons buttons = MessageBoxButtons.OK, MessageBoxIcon icon = MessageBoxIcon.Information)
+        public CustomMessageBox(string message, string title = "Fenceless | Message", MessageBoxButtons buttons = MessageBoxButtons.OK, MessageBoxIcon icon = MessageBoxIcon.Information)
         {
             // Create custom message box form
             this.Text = title;
@@ -47,7 +47,7 @@ namespace NoFences.UI
 
         }
 
-        public static DialogResult Show(string message, string title = "BetterNoFences | Message", MessageBoxButtons buttons = MessageBoxButtons.OK, MessageBoxIcon icon = MessageBoxIcon.Information)
+        public static DialogResult Show(string message, string title = "Fenceless | Message", MessageBoxButtons buttons = MessageBoxButtons.OK, MessageBoxIcon icon = MessageBoxIcon.Information)
         {
             using (CustomMessageBox msgBox = new CustomMessageBox(message, title, buttons, icon))
             {

@@ -58,7 +58,7 @@ namespace NoFences.UI
             this.SuspendLayout();
             
             // Form setup with proper form border style for dragging
-            this.Text = "BetterNoFences Settings";
+            this.Text = "Fenceless Settings";
             this.Size = new Size(1200, 800);
             this.FormBorderStyle = FormBorderStyle.Sizable;
             this.MaximizeBox = true;

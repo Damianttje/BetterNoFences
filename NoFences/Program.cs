@@ -31,7 +31,7 @@ namespace NoFences
                 // Load settings to configure logging properly
                 var settings = AppSettings.Instance;
                 
-                logger.Info("BetterNoFences application starting...", "Main");
+                logger.Info("Fenceless application starting...", "Main");
 
                 //allows the context menu to be in dark mode
                 //inherits from the system settings
@@ -62,7 +62,7 @@ namespace NoFences
                                 trayIcon.Icon = new Icon(ms);
                             }
                             trayIcon.Visible = true;
-                            trayIcon.Text = "BetterNoFences - Desktop organization tool";
+                            trayIcon.Text = "Fenceless - Desktop organization tool";
 
                             var contextMenu = new ContextMenuStrip();
 
@@ -113,7 +113,7 @@ namespace NoFences
                                     FenceManager.Instance.CreateFence("First fence");
                                 }
                                 
-                                logger.Info("BetterNoFences initialized successfully", "Main");
+                                logger.Info("Fenceless initialized successfully", "Main");
                                 Application.Run();
                             }
                             catch (Exception ex)
@@ -130,8 +130,8 @@ namespace NoFences
                     }
                     else
                     {
-                        logger.Warning("Another instance of BetterNoFences is already running", "Main");
-                        MessageBox.Show("BetterNoFences is already running.", "BetterNoFences", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        logger.Warning("Another instance of Fenceless is already running", "Main");
+                        MessageBox.Show("Fenceless is already running.", "Fenceless", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
             }
@@ -204,14 +204,14 @@ namespace NoFences
         {
             try
             {
-                logger.Info("BetterNoFences shutting down...", "Main");
+                logger.Info("Fenceless shutting down...", "Main");
                 
                 // Save all data before exit
                 FenceManager.Instance.SaveAllFences();
                 AppSettings.Instance.SaveSettings();
                 FenceManager.Instance.Dispose();
                 
-                logger.Info("BetterNoFences shutdown complete", "Main");
+                logger.Info("Fenceless shutdown complete", "Main");
 
                 // Flush and dispose logger
                 logger.FlushLogs();
