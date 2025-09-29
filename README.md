@@ -1,4 +1,4 @@
-# BetterNoFences
+# Fenceless
 
 An improved fork of [NoFences](https://github.com/Twometer/NoFences) - organize your desktop with transparent containers.
 
@@ -12,7 +12,7 @@ An improved fork of [NoFences](https://github.com/Twometer/NoFences) - organize 
 ## Installation
 
 1. Download the portable version from [Releases](https://github.com/Damianttje/BetterNoFences/releases)
-2. Extract and run `BetterNoFences.exe`
+2. Extract and run `Fenceless.exe`
 3. Right-click the tray icon for options
 
 ## Requirements
