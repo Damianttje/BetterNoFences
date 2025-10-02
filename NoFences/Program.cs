@@ -23,8 +23,6 @@ namespace Fenceless
         {
             try
             {
-                CustomMessageBox.Show("test");
-
                 // Initialize logging first
                 logger = Logger.Instance;
                 
@@ -37,7 +35,7 @@ namespace Fenceless
                 //inherits from the system settings
                 WindowUtil.SetPreferredAppMode(1);
 
-                using (var mutex = new Mutex(true, "No_fences", out var createdNew))
+                using (var mutex = new Mutex(true, "fenceless", out var createdNew))
                 {
                     if (createdNew)
                     {
