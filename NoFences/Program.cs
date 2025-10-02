@@ -93,6 +93,63 @@ namespace Fenceless
                             
                             contextMenu.Items.Add(new ToolStripSeparator());
                             
+                            // Add Start with Windows checkbox
+                            var startWithWindowsMenuItem = new ToolStripMenuItem("Start with Windows");
+                            startWithWindowsMenuItem.CheckOnClick = true;
+                            
+                            // Sync the setting with actual registry state at startup
+                            bool actualStartupState = Util.StartupManager.IsStartupEnabled();
+                            var settings = AppSettings.Instance;
+                            if (settings.StartWithWindows != actualStartupState)
+                            {
+                                logger.Info($"Syncing startup setting - Registry: {actualStartupState}, Settings: {settings.StartWithWindows}", "Main");
+                                settings.StartWithWindows = actualStartupState;
+                                settings.SaveSettings();
+                            }
+                            startWithWindowsMenuItem.Checked = actualStartupState;
+                            startWithWindowsMenuItem.CheckedChanged += (s, e) =>
+                            {
+                                logger.Debug($"Start with Windows toggled: {startWithWindowsMenuItem.Checked}", "Main");
+                                var settings = AppSettings.Instance;
+                                settings.StartWithWindows = startWithWindowsMenuItem.Checked;
+                                
+                                if (startWithWindowsMenuItem.Checked)
+                                {
+                                    if (!Util.StartupManager.EnableStartup())
+                                    {
+                                        logger.Error("Failed to enable startup", "Main");
+                                        MessageBox.Show("Failed to enable startup with Windows. Please check the logs for details.", 
+                                            "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                        startWithWindowsMenuItem.Checked = false;
+                                        settings.StartWithWindows = false;
+                                    }
+                                    else
+                                    {
+                                        logger.Info("Startup with Windows enabled", "Main");
+                                    }
+                                }
+                                else
+                                {
+                                    if (!Util.StartupManager.DisableStartup())
+                                    {
+                                        logger.Error("Failed to disable startup", "Main");
+                                        MessageBox.Show("Failed to disable startup with Windows. Please check the logs for details.", 
+                                            "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                        startWithWindowsMenuItem.Checked = true;
+                                        settings.StartWithWindows = true;
+                                    }
+                                    else
+                                    {
+                                        logger.Info("Startup with Windows disabled", "Main");
+                                    }
+                                }
+                                
+                                settings.SaveSettings();
+                            };
+                            contextMenu.Items.Add(startWithWindowsMenuItem);
+                            
+                            contextMenu.Items.Add(new ToolStripSeparator());
+                            
                             var exitMenuItem = new ToolStripMenuItem("Exit");
                             exitMenuItem.Click += (s, e) =>
                             {

@@ -1099,8 +1099,26 @@ namespace Fenceless
             // Only handle double-click if we're not dragging
             if (!isDraggingItem)
             {
-                shouldRunDoubleClick = true;
-                Refresh();
+                // Get the current mouse position and check if it's over an item
+                var mousePos = PointToClient(MousePosition);
+                var itemPath = GetItemAtPosition(mousePos);
+                
+                if (itemPath != null)
+                {
+                    // Open the item directly
+                    var entry = FenceEntry.FromPath(itemPath);
+                    if (entry != null)
+                    {
+                        logger.Debug($"Double-clicked item '{System.IO.Path.GetFileName(itemPath)}' in fence '{fenceInfo.Name}'", "FenceWindow");
+                        entry.Open();
+                    }
+                }
+                else
+                {
+                    // If not over an item, still set the flag for backward compatibility
+                    shouldRunDoubleClick = true;
+                    Refresh();
+                }
             }
         }
 
