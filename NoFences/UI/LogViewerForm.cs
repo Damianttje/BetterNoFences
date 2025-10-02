@@ -1,38 +1,162 @@
+using DarkUI.Controls;
+using DarkUI.Forms;
+using Fenceless.Util;
 using System;
 using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
-using NoFences.Util;
 
-namespace NoFences
+namespace Fenceless.UI
 {
     public partial class LogViewerForm : Form
     {
-        private TextBox logTextBox;
-        private Button refreshButton;
-        private Button clearButton;
-        private Button saveButton;
-        private CheckBox autoScrollCheckBox;
-        private ComboBox logLevelComboBox;
-        private Label statusLabel;
+        private Panel toolbarPanel;
+        private DarkButton refreshButton;
+        private DarkButton clearButton;
+        private DarkButton saveButton;
+        private DarkCheckBox autoScrollCheckBox;
+        private DarkComboBox logLevelComboBox;
+        private DarkTextBox logTextBox;
+        private StatusStrip statusStrip;
+        private ToolStripStatusLabel statusLabel;
         
         private readonly string logFilePath;
         private readonly Logger logger;
         private DateTime lastUpdateTime;
+        private Timer refreshTimer;
 
         public LogViewerForm()
         {
             logger = Logger.Instance;
-            var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BetterNoFences");
+            var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenceless");
             logFilePath = Path.Combine(appDataPath, "application.log");
             
             InitializeComponent();
             LoadLogContent();
-            
-            // Auto-refresh timer
-            var refreshTimer = new Timer();
-            refreshTimer.Interval = 2000; // Refresh every 2 seconds
+            SetupRefreshTimer();
+        }
+
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+
+            // Form setup with proper controls for dragging and closing
+            this.Text = "Fenceless - Log Viewer";
+            this.Size = new Size(1000, 700);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.MinimumSize = new Size(800, 500);
+            this.MaximizeBox = true;
+            this.MinimizeBox = true;
+            this.ControlBox = true; // Ensure control box is visible
+            this.ShowInTaskbar = true; // Show in taskbar for easier access
+
+            // Create toolbar panel with dark styling
+            toolbarPanel = new Panel
+            {
+                Height = 35,
+                Dock = DockStyle.Top,
+                BackColor = Color.FromArgb(60, 63, 65)
+            };
+
+            refreshButton = new DarkButton
+            {
+                Text = "Refresh",
+                Size = new Size(70, 25),
+                Location = new Point(5, 5)
+            };
+            refreshButton.Click += RefreshButton_Click;
+
+            clearButton = new DarkButton
+            {
+                Text = "Clear Log",
+                Size = new Size(80, 25),
+                Location = new Point(85, 5)
+            };
+            clearButton.Click += ClearButton_Click;
+
+            saveButton = new DarkButton
+            {
+                Text = "Save As...",
+                Size = new Size(80, 25),
+                Location = new Point(175, 5)
+            };
+            saveButton.Click += SaveButton_Click;
+
+            autoScrollCheckBox = new DarkCheckBox
+            {
+                Text = "Auto-scroll",
+                Checked = true,
+                Location = new Point(270, 8),
+                AutoSize = true
+            };
+
+            var logLevelLabel = new DarkLabel
+            {
+                Text = "Filter:",
+                Location = new Point(380, 8),
+                AutoSize = true
+            };
+
+            logLevelComboBox = new DarkComboBox
+            {
+                Width = 100,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(420, 5)
+            };
+            logLevelComboBox.Items.AddRange(new[] { "All", "Debug", "Info", "Warning", "Error", "Critical" });
+            logLevelComboBox.SelectedIndex = 0;
+            logLevelComboBox.SelectedIndexChanged += LogLevelComboBox_SelectedIndexChanged;
+
+            toolbarPanel.Controls.AddRange(new Control[] { 
+                refreshButton, clearButton, saveButton, autoScrollCheckBox, logLevelLabel, logLevelComboBox 
+            });
+
+            // Create log text box with dark styling
+            logTextBox = new DarkTextBox
+            {
+                Multiline = true,
+                ScrollBars = ScrollBars.Both,
+                ReadOnly = true,
+                Dock = DockStyle.Fill,
+                Font = new Font("Consolas", 9, FontStyle.Regular),
+                BackColor = Color.FromArgb(43, 43, 43),
+                ForeColor = Color.FromArgb(220, 220, 220),
+                BorderStyle = BorderStyle.None
+            };
+
+            // Create status strip with dark styling
+            statusStrip = new StatusStrip
+            {
+                Dock = DockStyle.Bottom,
+                BackColor = Color.FromArgb(60, 63, 65),
+                ForeColor = Color.FromArgb(220, 220, 220)
+            };
+
+            statusLabel = new ToolStripStatusLabel
+            {
+                Text = "Ready",
+                Spring = true,
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = Color.FromArgb(220, 220, 220)
+            };
+
+            statusStrip.Items.Add(statusLabel);
+
+            // Add controls to form
+            this.Controls.Add(logTextBox);
+            this.Controls.Add(toolbarPanel);
+            this.Controls.Add(statusStrip);
+
+            this.ResumeLayout(false);
+        }
+
+        private void SetupRefreshTimer()
+        {
+            refreshTimer = new Timer
+            {
+                Interval = 2000 // Refresh every 2 seconds
+            };
             refreshTimer.Tick += (s, e) => {
                 if (autoScrollCheckBox.Checked)
                 {
@@ -40,109 +164,6 @@ namespace NoFences
                 }
             };
             refreshTimer.Start();
-        }
-
-        private void InitializeComponent()
-        {
-            this.Text = "NoFences - Log Viewer";
-            this.Size = new Size(800, 600);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.Icon = this.Icon; // Use default form icon
-            
-            // Create controls
-            var topPanel = new Panel
-            {
-                Height = 40,
-                Dock = DockStyle.Top,
-                Padding = new Padding(5)
-            };
-
-            refreshButton = new Button
-            {
-                Text = "Refresh",
-                Location = new Point(5, 8),
-                Size = new Size(75, 23),
-                UseVisualStyleBackColor = true
-            };
-            refreshButton.Click += RefreshButton_Click;
-
-            clearButton = new Button
-            {
-                Text = "Clear",
-                Location = new Point(85, 8),
-                Size = new Size(75, 23),
-                UseVisualStyleBackColor = true
-            };
-            clearButton.Click += ClearButton_Click;
-
-            saveButton = new Button
-            {
-                Text = "Save As...",
-                Location = new Point(165, 8),
-                Size = new Size(75, 23),
-                UseVisualStyleBackColor = true
-            };
-            saveButton.Click += SaveButton_Click;
-
-            autoScrollCheckBox = new CheckBox
-            {
-                Text = "Auto-scroll",
-                Location = new Point(250, 10),
-                Size = new Size(80, 20),
-                Checked = true,
-                UseVisualStyleBackColor = true
-            };
-
-            var logLevelLabel = new Label
-            {
-                Text = "Level:",
-                Location = new Point(340, 12),
-                Size = new Size(40, 15)
-            };
-
-            logLevelComboBox = new ComboBox
-            {
-                Location = new Point(385, 8),
-                Size = new Size(80, 23),
-                DropDownStyle = ComboBoxStyle.DropDownList
-            };
-            logLevelComboBox.Items.AddRange(new[] { "All", "Debug", "Info", "Warning", "Error", "Critical" });
-            logLevelComboBox.SelectedIndex = 0;
-            logLevelComboBox.SelectedIndexChanged += LogLevelComboBox_SelectedIndexChanged;
-
-            var bottomPanel = new Panel
-            {
-                Height = 25,
-                Dock = DockStyle.Bottom,
-                Padding = new Padding(5, 2, 5, 2)
-            };
-
-            statusLabel = new Label
-            {
-                Text = "Ready",
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-
-            logTextBox = new TextBox
-            {
-                Multiline = true,
-                ScrollBars = ScrollBars.Both,
-                ReadOnly = true,
-                Dock = DockStyle.Fill,
-                Font = new Font("Consolas", 9),
-                BackColor = Color.Black,
-                ForeColor = Color.LightGray
-            };
-
-            // Add controls to panels
-            topPanel.Controls.AddRange(new Control[] { refreshButton, clearButton, saveButton, autoScrollCheckBox, logLevelLabel, logLevelComboBox });
-            bottomPanel.Controls.Add(statusLabel);
-
-            // Add panels to form
-            this.Controls.Add(logTextBox);
-            this.Controls.Add(topPanel);
-            this.Controls.Add(bottomPanel);
         }
 
         private void LoadLogContent()
@@ -156,11 +177,11 @@ namespace NoFences
                     
                     var fileInfo = new FileInfo(logFilePath);
                     lastUpdateTime = fileInfo.LastWriteTime;
-                    statusLabel.Text = $"Log loaded - {fileInfo.Length} bytes - Last updated: {lastUpdateTime:HH:mm:ss}";
+                    statusLabel.Text = $"Log loaded - {FormatFileSize(fileInfo.Length)} - Last updated: {lastUpdateTime:HH:mm:ss}";
                 }
                 else
                 {
-                    logTextBox.Text = "No log file found.";
+                    logTextBox.Text = "No log file found. Logs will appear here once the application starts logging.";
                     statusLabel.Text = "No log file found";
                 }
             }
@@ -227,6 +248,14 @@ namespace NoFences
             logTextBox.Text = filteredLines.ToString();
         }
 
+        private string FormatFileSize(long bytes)
+        {
+            if (bytes < 1024) return $"{bytes} B";
+            if (bytes < 1024 * 1024) return $"{bytes / 1024:F1} KB";
+            if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024 * 1024):F1} MB";
+            return $"{bytes / (1024 * 1024 * 1024):F1} GB";
+        }
+
         private void RefreshButton_Click(object sender, EventArgs e)
         {
             LoadLogContent();
@@ -235,13 +264,14 @@ namespace NoFences
                 logTextBox.SelectionStart = logTextBox.Text.Length;
                 logTextBox.ScrollToCaret();
             }
+            statusLabel.Text = "Log refreshed manually";
         }
 
         private void ClearButton_Click(object sender, EventArgs e)
         {
             var result = MessageBox.Show(
-                "This will clear the log file. Are you sure?",
-                "Clear Log",
+                "This will permanently clear the log file. Are you sure?",
+                "Clear Log File",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
 
@@ -251,7 +281,7 @@ namespace NoFences
                 {
                     File.WriteAllText(logFilePath, string.Empty);
                     logTextBox.Clear();
-                    statusLabel.Text = "Log cleared";
+                    statusLabel.Text = "Log file cleared";
                     logger.Info("Log file cleared by user", "LogViewer");
                 }
                 catch (Exception ex)
@@ -267,14 +297,15 @@ namespace NoFences
             {
                 saveDialog.Filter = "Text files (*.txt)|*.txt|Log files (*.log)|*.log|All files (*.*)|*.*";
                 saveDialog.DefaultExt = "txt";
-                saveDialog.FileName = $"NoFences_Log_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+                saveDialog.FileName = $"Fenceless_Log_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+                saveDialog.Title = "Save Log File";
 
                 if (saveDialog.ShowDialog() == DialogResult.OK)
                 {
                     try
                     {
                         File.WriteAllText(saveDialog.FileName, logTextBox.Text);
-                        statusLabel.Text = $"Log saved to: {saveDialog.FileName}";
+                        statusLabel.Text = $"Log saved to: {Path.GetFileName(saveDialog.FileName)}";
                         logger.Info($"Log exported to: {saveDialog.FileName}", "LogViewer");
                     }
                     catch (Exception ex)
@@ -291,21 +322,25 @@ namespace NoFences
             {
                 var content = File.ReadAllText(logFilePath);
                 FilterAndDisplayLogs(content);
+                statusLabel.Text = $"Filtered to show: {logLevelComboBox.SelectedItem}";
             }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            // Hide instead of closing when user clicks X
-            if (e.CloseReason == CloseReason.UserClosing)
+            // Allow normal closing behavior instead of hiding
+            refreshTimer?.Stop();
+            refreshTimer?.Dispose();
+            base.OnFormClosing(e);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
             {
-                e.Cancel = true;
-                this.Hide();
+                refreshTimer?.Dispose();
             }
-            else
-            {
-                base.OnFormClosing(e);
-            }
+            base.Dispose(disposing);
         }
     }
 }

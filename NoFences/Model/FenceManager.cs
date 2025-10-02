@@ -1,12 +1,13 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Xml.Serialization;
 using System.Collections.Generic;
-using NoFences.Util;
+using Fenceless.Util;
+using Fenceless.UI;
 using System.Windows.Forms;
 using System.Linq;
 
-namespace NoFences.Model
+namespace Fenceless.Model
 {
     public class FenceManager
     {
@@ -23,7 +24,7 @@ namespace NoFences.Model
         public FenceManager()
         {
             logger = Logger.Instance;
-            basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BetterNoFences");
+            basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenceless");
             EnsureDirectoryExists(basePath);
             logger.Info($"FenceManager initialized with base path: {basePath}", "FenceManager");
             InitializeGlobalHotkeys();
@@ -369,7 +370,7 @@ namespace NoFences.Model
             try
             {
                 logger.Debug("Opening global settings dialog", "FenceManager");
-                var settingsForm = new GlobalSettingsForm();
+                var settingsForm = new SettingsForm();
                 if (settingsForm.ShowDialog() == DialogResult.OK)
                 {
                     // Refresh global hotkeys if they changed
@@ -388,7 +389,7 @@ namespace NoFences.Model
             try
             {
                 logger.Debug($"Opening settings for fence '{fenceInfo.Name}'", "FenceManager");
-                var settingsForm = new GlobalSettingsForm();
+                var settingsForm = new SettingsForm();
                 if (settingsForm.ShowDialog() == DialogResult.OK)
                 {
                     // Find the fence window and refresh its settings

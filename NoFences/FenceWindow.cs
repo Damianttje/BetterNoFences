@@ -1,6 +1,7 @@
-﻿using NoFences.Model;
-using NoFences.Util;
-using NoFences.Win32;
+﻿using Fenceless.Model;
+using Fenceless.UI;
+using Fenceless.Util;
+using Fenceless.Win32;
 using Peter;
 using System;
 using System.Collections.Generic;
@@ -8,9 +9,9 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
-using static NoFences.Win32.WindowUtil;
+using static Fenceless.Win32.WindowUtil;
 
-namespace NoFences
+namespace Fenceless
 {
     public partial class FenceWindow : Form
     {
@@ -1358,7 +1359,7 @@ namespace NoFences
 
         private void renameToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var dialog = new EditDialog(Text);
+            var dialog = new UI.EditDialog("Edit Name", Text, "New name:");
             if (dialog.ShowDialog(this) == DialogResult.OK)
             {
                 Text = dialog.NewName;

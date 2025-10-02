@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace NoFences.Model
+namespace Fenceless.Model
 {
     public class FenceInfo
     {

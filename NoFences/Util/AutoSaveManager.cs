@@ -1,9 +1,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using NoFences.Model;
+using Fenceless.Model;
 
-namespace NoFences.Util
+namespace Fenceless.Util
 {
     public class AutoSaveManager : IDisposable
     {

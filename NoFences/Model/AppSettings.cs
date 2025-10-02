@@ -1,9 +1,10 @@
 using Newtonsoft.Json;
 using System;
 using System.IO;
-using NoFences.Util;
+using System.Windows.Forms;
+using Fenceless.Util;
 
-namespace NoFences.Model
+namespace Fenceless.Model
 {
     public class AppSettings
     {
@@ -73,7 +74,7 @@ namespace NoFences.Model
                 logger = null;
             }
             
-            var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BetterNoFences");
+            var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Fenceless");
             settingsPath = Path.Combine(appDataPath, "settings.json");
             LoadSettings();
             
@@ -180,9 +181,9 @@ namespace NoFences.Model
                     logger.Debug($"Logging settings applied - Level: {LogLevel}, File: {EnableFileLogging}", "AppSettings");
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // Ignore errors during logging configuration
+                MessageBox.Show($@"Failed to apply logging settings: {e}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         

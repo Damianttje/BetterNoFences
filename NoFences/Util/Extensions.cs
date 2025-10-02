@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 
-namespace NoFences.Util
+namespace Fenceless.Util
 {
     public static class Extensions
     {

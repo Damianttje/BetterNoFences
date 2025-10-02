@@ -1,18 +1,24 @@
-﻿using NoFences.Model;
-using NoFences.Win32;
-using NoFences.Util;
+using Fenceless.Model;
+using Fenceless.Win32;
+using Fenceless.Util;
+using Fenceless.UI;
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Net.Http;
+using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using Newtonsoft.Json.Linq;
 
-namespace NoFences
+namespace Fenceless
 {
     static class Program
     {
         private static Logger logger;
-        private static LogViewerForm logViewerForm;
+        private static UI.LogViewerForm logViewerForm;
 
         /// <summary>
         /// The main entry point for the application.
@@ -28,13 +34,16 @@ namespace NoFences
                 // Load settings to configure logging properly
                 var settings = AppSettings.Instance;
                 
-                logger.Info("BetterNoFences application starting...", "Main");
+                logger.Info("Fenceless application starting...", "Main");
+
+                // Check using Codeberg api if a new release is available (https://codeberg.org/Wavestorm/Fenceless/releases)
+                _ = Task.Run(CheckForUpdatesAsync);
 
                 //allows the context menu to be in dark mode
                 //inherits from the system settings
                 WindowUtil.SetPreferredAppMode(1);
 
-                using (var mutex = new Mutex(true, "No_fences", out var createdNew))
+                using (var mutex = new Mutex(true, "fenceless", out var createdNew))
                 {
                     if (createdNew)
                     {
@@ -59,19 +68,24 @@ namespace NoFences
                                 trayIcon.Icon = new Icon(ms);
                             }
                             trayIcon.Visible = true;
-                            trayIcon.Text = "BetterNoFences - Desktop organization tool";
+                            trayIcon.Text = "Fenceless - Desktop organization tool";
 
                             var contextMenu = new ContextMenuStrip();
 
-                            // Add Add Fence menu item
+                            // Add Fence menu item with sub menu for fence type
                             var addFenceMenuItem = new ToolStripMenuItem("Add Fence");
-                            addFenceMenuItem.Click += (s, e) =>
+
+                            var normalFenceMenuItem = new ToolStripMenuItem("Normal Fence");
+                            normalFenceMenuItem.Click += (s, e) =>
                             {
-                                logger.Info("Add Fence requested from tray menu", "Main");
+                                logger.Info("Add Normal Fence requested from tray menu", "Main");
                                 FenceManager.Instance.CreateFence("New Fence");
                             };
+
+                            addFenceMenuItem.DropDownItems.Add(normalFenceMenuItem);
+
                             contextMenu.Items.Add(addFenceMenuItem);
-                            
+
                             // Add Log Viewer menu item
                             var logViewerMenuItem = new ToolStripMenuItem("View Logs");
                             logViewerMenuItem.Click += (s, e) => ShowLogViewer();
@@ -105,7 +119,7 @@ namespace NoFences
                                     FenceManager.Instance.CreateFence("First fence");
                                 }
                                 
-                                logger.Info("BetterNoFences initialized successfully", "Main");
+                                logger.Info("Fenceless initialized successfully", "Main");
                                 Application.Run();
                             }
                             catch (Exception ex)
@@ -122,8 +136,8 @@ namespace NoFences
                     }
                     else
                     {
-                        logger.Warning("Another instance of BetterNoFences is already running", "Main");
-                        MessageBox.Show("BetterNoFences is already running.", "BetterNoFences", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        logger.Warning("Another instance of Fenceless is already running", "Main");
+                        MessageBox.Show("Fenceless is already running.", "Fenceless", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
             }
@@ -166,6 +180,164 @@ namespace NoFences
             }
         }
 
+        private static async Task CheckForUpdatesAsync()
+        {
+            try
+            {
+                if (logger == null)
+                {
+                    return; // Logger not initialized yet
+                }
+                
+                logger.Info("Checking for updates...", "CheckForUpdates");
+                
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "Fenceless-UpdateChecker");
+                    
+                    // Get all releases from Codeberg API
+                    var response = await httpClient.GetStringAsync("https://codeberg.org/api/v1/repos/Wavestorm/Fenceless/releases");
+                    
+                    if (string.IsNullOrEmpty(response))
+                    {
+                        logger?.Warning("Empty response from Codeberg API", "CheckForUpdates");
+                        return;
+                    }
+                    
+                    var releasesArray = JArray.Parse(response);
+                    
+                    if (releasesArray == null || releasesArray.Count == 0)
+                    {
+                        logger?.Info("No releases found on Codeberg", "CheckForUpdates");
+                        return;
+                    }
+                    
+                    // Find the latest non-prerelease version
+                    JObject latestRelease = null;
+                    foreach (var release in releasesArray)
+                    {
+                        if (release == null) continue;
+                        
+                        var isPrerelease = release["prerelease"]?.Value<bool>() ?? false;
+                        var isDraft = release["draft"]?.Value<bool>() ?? false;
+                        
+                        if (!isPrerelease && !isDraft)
+                        {
+                            latestRelease = (JObject)release;
+                            break; // Releases are typically ordered by date, so first non-prerelease is latest
+                        }
+                    }
+                    
+                    // If no stable release found, use the first release (even if prerelease)
+                    if (latestRelease == null && releasesArray.Count > 0)
+                    {
+                        latestRelease = (JObject)releasesArray[0];
+                        logger?.Info("No stable release found, using latest prerelease", "CheckForUpdates");
+                    }
+                    
+                    if (latestRelease == null)
+                    {
+                        logger?.Warning("Could not find any suitable release", "CheckForUpdates");
+                        return;
+                    }
+                    
+                    var latestVersion = latestRelease["tag_name"]?.ToString();
+                    if (string.IsNullOrEmpty(latestVersion))
+                    {
+                        logger?.Warning("Could not parse latest version from API response", "CheckForUpdates");
+                        return;
+                    }
+                    
+                    // Remove 'v' prefix if present
+                    if (latestVersion.StartsWith("v"))
+                        latestVersion = latestVersion.Substring(1);
+                    
+                    // Get current version from assembly
+                    var assembly = Assembly.GetExecutingAssembly();
+                    if (assembly?.GetName()?.Version == null)
+                    {
+                        logger?.Warning("Could not get current assembly version", "CheckForUpdates");
+                        return;
+                    }
+                    
+                    var currentVersion = assembly.GetName().Version.ToString();
+                    
+                    logger?.Info($"Current version: {currentVersion}, Latest version: {latestVersion}", "CheckForUpdates");
+                    
+                    // Compare versions
+                    if (IsNewerVersion(latestVersion, currentVersion))
+                    {
+                        logger?.Info("New version available, showing update notification", "CheckForUpdates");
+                        ShowUpdateNotification(latestVersion);
+                    }
+                    else
+                    {
+                        logger?.Info("Application is up to date", "CheckForUpdates");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger?.Error($"Error checking for updates: {ex.Message}", "CheckForUpdates");
+            }
+        }
+        
+        private static bool IsNewerVersion(string latestVersion, string currentVersion)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(latestVersion) || string.IsNullOrEmpty(currentVersion))
+                {
+                    logger?.Warning("Invalid version strings for comparison", "IsNewerVersion");
+                    return false;
+                }
+                
+                var latest = new Version(latestVersion);
+                var current = new Version(currentVersion);
+                return latest > current;
+            }
+            catch (Exception ex)
+            {
+                logger?.Error($"Error comparing versions: {ex.Message}", "IsNewerVersion");
+                return false;
+            }
+        }
+        
+        private static void ShowUpdateNotification(string newVersion)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(newVersion))
+                {
+                    logger?.Warning("Cannot show update notification with empty version", "ShowUpdateNotification");
+                    return;
+                }
+                
+                var assembly = Assembly.GetExecutingAssembly();
+                var currentVersionString = assembly?.GetName()?.Version?.ToString() ?? "Unknown";
+                
+                var result = MessageBox.Show(
+                    $"A new version of Fenceless is available!\n\nCurrent version: {currentVersionString}\nNew version: {newVersion}\n\nWould you like to visit the releases page to download the update?",
+                    "Update Available",
+                    MessageBoxButtons.OKCancel,
+                    MessageBoxIcon.Information
+                );
+                
+                if (result == DialogResult.OK)
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "https://codeberg.org/Wavestorm/Fenceless/releases",
+                        UseShellExecute = true
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                logger?.Error($"Error showing update notification: {ex.Message}", "ShowUpdateNotification");
+            }
+        }
+
         private static void ShowLogViewer()
         {
             try
@@ -173,7 +345,7 @@ namespace NoFences
                 logger.Debug("Log viewer requested", "Main");
                 if (logViewerForm == null || logViewerForm.IsDisposed)
                 {
-                    logViewerForm = new LogViewerForm();
+                    logViewerForm = new UI.LogViewerForm();
                 }
                 
                 if (logViewerForm.Visible)
@@ -196,14 +368,14 @@ namespace NoFences
         {
             try
             {
-                logger.Info("BetterNoFences shutting down...", "Main");
+                logger.Info("Fenceless shutting down...", "Main");
                 
                 // Save all data before exit
                 FenceManager.Instance.SaveAllFences();
                 AppSettings.Instance.SaveSettings();
                 FenceManager.Instance.Dispose();
                 
-                logger.Info("BetterNoFences shutdown complete", "Main");
+                logger.Info("Fenceless shutdown complete", "Main");
 
                 // Flush and dispose logger
                 logger.FlushLogs();

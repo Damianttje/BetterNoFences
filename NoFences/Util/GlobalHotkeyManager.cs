@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace NoFences.Util
+namespace Fenceless.Util
 {
     public class GlobalHotkeyManager : IDisposable
     {

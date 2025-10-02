@@ -1,4 +1,4 @@
-﻿namespace NoFences.Model
+﻿namespace Fenceless.Model
 {
     public enum EntryType
     {

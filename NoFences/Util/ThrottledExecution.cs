@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NoFences.Util
+namespace Fenceless.Util
 {
     public class ThrottledExecution : IDisposable
     {

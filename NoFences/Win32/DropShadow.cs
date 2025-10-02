@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace NoFences.Win32
+namespace Fenceless.Win32
 {
     public class DropShadow
     {
