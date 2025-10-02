@@ -2,11 +2,11 @@
 using System.IO;
 using System.Xml.Serialization;
 using System.Collections.Generic;
-using NoFences.Util;
+using Fenceless.Util;
 using System.Windows.Forms;
 using System.Linq;
 
-namespace NoFences.Model
+namespace Fenceless.Model
 {
     public class FenceManager
     {

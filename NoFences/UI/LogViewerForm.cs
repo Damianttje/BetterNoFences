@@ -1,13 +1,13 @@
 using DarkUI.Controls;
 using DarkUI.Forms;
-using NoFences.Util;
+using Fenceless.Util;
 using System;
 using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
 
-namespace NoFences.UI
+namespace Fenceless.UI
 {
     public partial class LogViewerForm : DarkForm
     {

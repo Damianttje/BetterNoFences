@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace NoFences.Util
+namespace Fenceless.Util
 {
     public enum LogLevel
     {

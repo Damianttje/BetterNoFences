@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace NoFences.Win32
+namespace Fenceless.Win32
 {
     public class DesktopUtil
     {

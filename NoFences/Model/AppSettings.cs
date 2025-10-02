@@ -2,9 +2,9 @@ using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Windows.Forms;
-using NoFences.Util;
+using Fenceless.Util;
 
-namespace NoFences.Model
+namespace Fenceless.Model
 {
     public class AppSettings
     {

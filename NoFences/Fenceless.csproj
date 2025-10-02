@@ -10,7 +10,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AssemblyName>Fenceless</AssemblyName>
-    <RootNamespace>NoFences</RootNamespace>
+    <RootNamespace>Fenceless</RootNamespace>
     <AssemblyTitle>Fenceless</AssemblyTitle>
     <AssemblyDescription>Open Source Alternative to 'Stardock Fences'</AssemblyDescription>
     <AssemblyProduct>Fenceless</AssemblyProduct>

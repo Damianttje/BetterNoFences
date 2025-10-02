@@ -1,4 +1,4 @@
-﻿namespace NoFences
+﻿namespace Fenceless
 {
     partial class FenceWindow
     {

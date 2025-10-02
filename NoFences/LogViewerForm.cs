@@ -1,9 +1,9 @@
-using NoFences.UI;
-using NoFences.Util;
+using Fenceless.UI;
+using Fenceless.Util;
 using System;
 using System.Windows.Forms;
 
-namespace NoFences
+namespace Fenceless
 {
     public partial class LogViewerForm : Form
     {

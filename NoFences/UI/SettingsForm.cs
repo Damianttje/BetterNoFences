@@ -1,7 +1,7 @@
 using DarkUI.Controls;
 using DarkUI.Forms;
-using NoFences.Model;
-using NoFences.Util;
+using Fenceless.Model;
+using Fenceless.Util;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -10,7 +10,7 @@ using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 
-namespace NoFences.UI
+namespace Fenceless.UI
 {
     public partial class SettingsForm : DarkForm
     {

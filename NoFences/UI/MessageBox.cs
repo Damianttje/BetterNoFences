@@ -9,7 +9,7 @@ using DarkUI.Controls;
 using DarkUI.Data.Enums;
 using DarkUI.Forms;
 
-namespace NoFences.UI
+namespace Fenceless.UI
 {
     public class CustomMessageBox : DarkForm
     {

@@ -1,6 +1,6 @@
-﻿using NoFences.Model;
-using NoFences.Util;
-using NoFences.Win32;
+﻿using Fenceless.Model;
+using Fenceless.Util;
+using Fenceless.Win32;
 using Peter;
 using System;
 using System.Collections.Generic;
@@ -8,9 +8,9 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
-using static NoFences.Win32.WindowUtil;
+using static Fenceless.Win32.WindowUtil;
 
-namespace NoFences
+namespace Fenceless
 {
     public partial class FenceWindow : Form
     {

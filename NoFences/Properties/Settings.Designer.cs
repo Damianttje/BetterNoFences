@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace NoFences.Properties {
+namespace Fenceless.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]

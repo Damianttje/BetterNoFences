@@ -1,8 +1,8 @@
-﻿using NoFences.UI;
+﻿using Fenceless.UI;
 using System;
 using System.Windows.Forms;
 
-namespace NoFences
+namespace Fenceless
 {
     public class EditDialog : Form
     {

@@ -1,14 +1,14 @@
-﻿using NoFences.Model;
-using NoFences.Win32;
-using NoFences.Util;
-using NoFences.UI;
+﻿using Fenceless.Model;
+using Fenceless.Win32;
+using Fenceless.Util;
+using Fenceless.UI;
 using System;
 using System.Drawing;
 using System.IO;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace NoFences
+namespace Fenceless
 {
     static class Program
     {
