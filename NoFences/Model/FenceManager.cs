@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Xml.Serialization;
 using System.Collections.Generic;
 using Fenceless.Util;
+using Fenceless.UI;
 using System.Windows.Forms;
 using System.Linq;
 
@@ -369,7 +370,7 @@ namespace Fenceless.Model
             try
             {
                 logger.Debug("Opening global settings dialog", "FenceManager");
-                var settingsForm = new GlobalSettingsForm();
+                var settingsForm = new SettingsForm();
                 if (settingsForm.ShowDialog() == DialogResult.OK)
                 {
                     // Refresh global hotkeys if they changed
@@ -388,7 +389,7 @@ namespace Fenceless.Model
             try
             {
                 logger.Debug($"Opening settings for fence '{fenceInfo.Name}'", "FenceManager");
-                var settingsForm = new GlobalSettingsForm();
+                var settingsForm = new SettingsForm();
                 if (settingsForm.ShowDialog() == DialogResult.OK)
                 {
                     // Find the fence window and refresh its settings

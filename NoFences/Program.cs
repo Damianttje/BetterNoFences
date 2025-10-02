@@ -1,4 +1,4 @@
-﻿using Fenceless.Model;
+using Fenceless.Model;
 using Fenceless.Win32;
 using Fenceless.Util;
 using Fenceless.UI;
@@ -13,7 +13,7 @@ namespace Fenceless
     static class Program
     {
         private static Logger logger;
-        private static LogViewerForm logViewerForm;
+        private static UI.LogViewerForm logViewerForm;
 
         /// <summary>
         /// The main entry point for the application.
@@ -179,7 +179,7 @@ namespace Fenceless
                 logger.Debug("Log viewer requested", "Main");
                 if (logViewerForm == null || logViewerForm.IsDisposed)
                 {
-                    logViewerForm = new LogViewerForm();
+                    logViewerForm = new UI.LogViewerForm();
                 }
                 
                 if (logViewerForm.Visible)

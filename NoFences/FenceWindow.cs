@@ -1,4 +1,5 @@
 ﻿using Fenceless.Model;
+using Fenceless.UI;
 using Fenceless.Util;
 using Fenceless.Win32;
 using Peter;
@@ -1358,7 +1359,7 @@ namespace Fenceless
 
         private void renameToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var dialog = new EditDialog(Text);
+            var dialog = new UI.EditDialog("Edit Name", Text, "New name:");
             if (dialog.ShowDialog(this) == DialogResult.OK)
             {
                 Text = dialog.NewName;
