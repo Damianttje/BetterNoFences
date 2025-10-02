@@ -11,7 +11,7 @@ An improved fork of [NoFences](https://github.com/Twometer/NoFences) - organize 
 
 ## Installation
 
-1. Download the portable version from [Releases](https://github.com/Damianttje/BetterNoFences/releases)
+1. Download the portable version from [Releases](https://codeberg.org/Wavestorm/Fenceless/releases)
 2. Extract and run `Fenceless.exe`
 3. Right-click the tray icon for options
 
