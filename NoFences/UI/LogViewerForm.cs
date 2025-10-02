@@ -9,7 +9,7 @@ using System.Windows.Forms;
 
 namespace Fenceless.UI
 {
-    public partial class LogViewerForm : DarkForm
+    public partial class LogViewerForm : Form
     {
         private Panel toolbarPanel;
         private DarkButton refreshButton;
@@ -46,7 +46,6 @@ namespace Fenceless.UI
             this.Size = new Size(1000, 700);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.MinimumSize = new Size(800, 500);
-            this.FormBorderStyle = FormBorderStyle.Sizable;
             this.MaximizeBox = true;
             this.MinimizeBox = true;
             this.ControlBox = true; // Ensure control box is visible
