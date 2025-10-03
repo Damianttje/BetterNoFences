@@ -44,6 +44,9 @@ namespace Fenceless.Model
         // Logging settings
         public string LogLevel { get; set; } = "Info";
         public bool EnableFileLogging { get; set; } = true;
+        
+        // Startup settings
+        public bool StartWithWindows { get; set; } = false;
 
         // Global keyboard shortcuts
         public string ToggleTransparencyShortcut { get; set; } = "Ctrl+Alt+T";
@@ -128,6 +131,7 @@ namespace Fenceless.Model
                         ToggleLockShortcut = tempSettings.ToggleLockShortcut ?? "Ctrl+Alt+L";
                         MinimizeAllFencesShortcut = tempSettings.MinimizeAllFencesShortcut ?? "Ctrl+Alt+M";
                         RefreshFencesShortcut = tempSettings.RefreshFencesShortcut ?? "F5";
+                        StartWithWindows = tempSettings.StartWithWindows;
                         
                         logger?.Info("Application settings loaded successfully", "AppSettings");
                     }
@@ -223,6 +227,7 @@ namespace Fenceless.Model
             public string ToggleLockShortcut { get; set; }
             public string MinimizeAllFencesShortcut { get; set; }
             public string RefreshFencesShortcut { get; set; }
+            public bool StartWithWindows { get; set; }
         }
     }
 }

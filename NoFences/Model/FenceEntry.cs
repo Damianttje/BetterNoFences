@@ -50,17 +50,50 @@ namespace Fenceless.Model
         {
             Task.Run(() =>
             {
-                // start asynchronously
+                var logger = Logger.Instance;
                 try
                 {
+                    // Verify the path still exists before trying to open
+                    if (!File.Exists(Path) && !Directory.Exists(Path))
+                    {
+                        logger?.Warning($"Cannot open item that no longer exists: {Path}", "FenceEntry");
+                        return;
+                    }
+                    
                     if (Type == EntryType.File)
-                        Process.Start(Path);
+                    {
+                        var startInfo = new ProcessStartInfo
+                        {
+                            FileName = Path,
+                            UseShellExecute = true,
+                            ErrorDialog = true
+                        };
+                        Process.Start(startInfo);
+                        logger?.Debug($"Opened file: {Path}", "FenceEntry");
+                    }
                     else if (Type == EntryType.Folder)
-                        Process.Start("explorer.exe", Path);
+                    {
+                        var startInfo = new ProcessStartInfo
+                        {
+                            FileName = "explorer.exe",
+                            Arguments = $"\"{Path}\"",
+                            UseShellExecute = true,
+                            ErrorDialog = true
+                        };
+                        Process.Start(startInfo);
+                        logger?.Debug($"Opened folder: {Path}", "FenceEntry");
+                    }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Failed to start: {e}");
+                    logger?.Error($"Failed to open item '{Path}': {e.Message}", "FenceEntry", e);
+                    // Show a user-friendly error message
+                    System.Windows.Forms.MessageBox.Show(
+                        $"Failed to open '{System.IO.Path.GetFileName(Path)}':\n\n{e.Message}",
+                        "Error Opening Item",
+                        System.Windows.Forms.MessageBoxButtons.OK,
+                        System.Windows.Forms.MessageBoxIcon.Error
+                    );
                 }
             });
         }

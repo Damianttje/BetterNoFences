@@ -879,11 +879,24 @@ namespace Fenceless
             // Check if we should start dragging
             if (e.Button == MouseButtons.Left && !isDraggingItem && selectedItem != null && !lockedToolStripMenuItem.Checked)
             {
-                var dragDistance = Math.Sqrt(Math.Pow(e.X - dragStartPoint.X, 2) + Math.Pow(e.Y - dragStartPoint.Y, 2));
-                if (dragDistance >= DragThreshold)
+                // Only start drag if the item still exists
+                if (ItemExists(selectedItem))
                 {
-                    StartItemDrag(selectedItem, e.Location);
-                    return;
+                    var dragDistance = Math.Sqrt(Math.Pow(e.X - dragStartPoint.X, 2) + Math.Pow(e.Y - dragStartPoint.Y, 2));
+                    if (dragDistance >= DragThreshold)
+                    {
+                        StartItemDrag(selectedItem, e.Location);
+                        return;
+                    }
+                }
+                else
+                {
+                    // Item no longer exists, clear selection
+                    logger.Warning($"Selected item no longer exists: {selectedItem}", "FenceWindow");
+                    fenceInfo.Files.Remove(selectedItem);
+                    selectedItem = null;
+                    Save();
+                    Refresh();
                 }
             }
             
@@ -902,9 +915,18 @@ namespace Fenceless
                 
                 // Find item under cursor
                 var itemPath = GetItemAtPosition(e.Location);
-                if (itemPath != null)
+                if (itemPath != null && ItemExists(itemPath))
                 {
                     selectedItem = itemPath;
+                    Refresh();
+                }
+                else if (itemPath != null)
+                {
+                    // Item no longer exists, remove it from the fence
+                    logger.Warning($"Item no longer exists, removing from fence: {itemPath}", "FenceWindow");
+                    fenceInfo.Files.Remove(itemPath);
+                    selectedItem = null;
+                    Save();
                     Refresh();
                 }
             }
@@ -953,6 +975,16 @@ namespace Fenceless
             
             try
             {
+                // Verify the dragged item still exists
+                if (!ItemExists(draggingItem))
+                {
+                    logger.Warning($"Dragged item no longer exists: {draggingItem}", "FenceWindow");
+                    fenceInfo.Files.Remove(draggingItem);
+                    selectedItem = null;
+                    Save();
+                    return;
+                }
+                
                 var currentIndex = fenceInfo.Files.IndexOf(draggingItem);
                 var targetIndex = GetGridPositionIndex(dropLocation);
                 
@@ -1096,11 +1128,37 @@ namespace Fenceless
 
         private void FenceWindow_DoubleClick(object sender, EventArgs e)
         {
-            // Only handle double-click if we're not dragging
-            if (!isDraggingItem)
+            // Only handle double-click if we're not dragging and not in a drag gesture
+            if (!isDraggingItem && selectedItem != null)
             {
-                shouldRunDoubleClick = true;
-                Refresh();
+                // Get the current mouse position and check if it's over an item
+                var mousePos = PointToClient(MousePosition);
+                var itemPath = GetItemAtPosition(mousePos);
+                
+                // Verify the double-clicked item still exists and matches the selected item
+                if (itemPath != null && itemPath == selectedItem && ItemExists(itemPath))
+                {
+                    // Open the item directly
+                    var entry = FenceEntry.FromPath(itemPath);
+                    if (entry != null)
+                    {
+                        logger.Info($"Double-clicked item '{System.IO.Path.GetFileName(itemPath)}' in fence '{fenceInfo.Name}'", "FenceWindow");
+                        entry.Open();
+                    }
+                    else
+                    {
+                        logger.Warning($"Could not create entry for item: {itemPath}", "FenceWindow");
+                    }
+                }
+                else if (itemPath != null && !ItemExists(itemPath))
+                {
+                    // Item no longer exists, remove it
+                    logger.Warning($"Double-clicked item no longer exists, removing: {itemPath}", "FenceWindow");
+                    fenceInfo.Files.Remove(itemPath);
+                    selectedItem = null;
+                    Save();
+                    Refresh();
+                }
             }
         }
 
@@ -1490,6 +1548,51 @@ namespace Fenceless
 
         // Improve the Save method with better error handling
         private readonly object saveLock = new object();
+        
+        /// <summary>
+        /// Validates all items in the fence and removes any that no longer exist
+        /// </summary>
+        /// <returns>Number of items removed</returns>
+        private int ValidateAndCleanupItems()
+        {
+            try
+            {
+                var itemsToRemove = new List<string>();
+                
+                foreach (var file in fenceInfo.Files)
+                {
+                    if (!ItemExists(file))
+                    {
+                        itemsToRemove.Add(file);
+                    }
+                }
+                
+                if (itemsToRemove.Count > 0)
+                {
+                    foreach (var item in itemsToRemove)
+                    {
+                        fenceInfo.Files.Remove(item);
+                        logger.Info($"Removed invalid item from fence '{fenceInfo.Name}': {item}", "FenceWindow");
+                    }
+                    
+                    // Clear selection if it was removed
+                    if (selectedItem != null && itemsToRemove.Contains(selectedItem))
+                    {
+                        selectedItem = null;
+                    }
+                    
+                    return itemsToRemove.Count;
+                }
+                
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error validating items in fence '{fenceInfo.Name}'", "FenceWindow", ex);
+                return 0;
+            }
+        }
+        
         private void Save()
         {
             lock (saveLock)
@@ -1524,7 +1627,14 @@ namespace Fenceless
 
         private void FenceWindow_Load(object sender, EventArgs e)
         {
-
+            // Validate items when the fence loads
+            var removedCount = ValidateAndCleanupItems();
+            if (removedCount > 0)
+            {
+                logger.Info($"Cleaned up {removedCount} invalid items from fence '{fenceInfo.Name}' on load", "FenceWindow");
+                Save();
+                Refresh();
+            }
         }
 
         private void titleSizeToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1624,6 +1734,17 @@ namespace Fenceless
 
         private void StartItemDrag(string itemPath, Point startLocation)
         {
+            // Verify item still exists before starting drag
+            if (!ItemExists(itemPath))
+            {
+                logger.Warning($"Cannot drag item that no longer exists: {itemPath}", "FenceWindow");
+                fenceInfo.Files.Remove(itemPath);
+                selectedItem = null;
+                Save();
+                Refresh();
+                return;
+            }
+            
             isDraggingItem = true;
             draggingItem = itemPath;
             dragCurrentPoint = startLocation;

@@ -60,6 +60,7 @@ namespace Fenceless.UI
         private DarkNumericUpDown nudAutoSaveInterval;
         private DarkCheckBox chkShowTooltips;
         private DarkCheckBox chkEnableAnimations;
+        private DarkCheckBox chkStartWithWindows;
         private DarkComboBox cmbLogLevel;
         private DarkCheckBox chkEnableFileLogging;
         private DarkTextBox txtToggleTransparencyShortcut;
@@ -223,9 +224,16 @@ namespace Fenceless.UI
                 AutoSize = true
             };
 
+            chkStartWithWindows = new DarkCheckBox
+            {
+                Text = "Start with Windows",
+                Location = new Point(200, 25),
+                AutoSize = true
+            };
+
             grpApp.Controls.AddRange(new Control[] {
                 chkAutoSave, lblAutoSaveInterval, nudAutoSaveInterval,
-                chkShowTooltips, chkEnableAnimations
+                chkShowTooltips, chkEnableAnimations, chkStartWithWindows
             });
 
             // Logging Settings Group
@@ -896,6 +904,7 @@ namespace Fenceless.UI
                 nudAutoSaveInterval.Value = settings.AutoSaveInterval;
                 chkShowTooltips.Checked = settings.ShowTooltips;
                 chkEnableAnimations.Checked = settings.EnableAnimations;
+                chkStartWithWindows.Checked = settings.StartWithWindows;
                 cmbLogLevel.SelectedItem = settings.LogLevel;
                 chkEnableFileLogging.Checked = settings.EnableFileLogging;
 
@@ -1071,6 +1080,36 @@ namespace Fenceless.UI
                 settings.EnableAnimations = chkEnableAnimations.Checked;
                 settings.LogLevel = cmbLogLevel.SelectedItem?.ToString() ?? "Info";
                 settings.EnableFileLogging = chkEnableFileLogging.Checked;
+                
+                // Handle startup with Windows setting
+                bool previousStartupSetting = settings.StartWithWindows;
+                settings.StartWithWindows = chkStartWithWindows.Checked;
+                
+                if (previousStartupSetting != settings.StartWithWindows)
+                {
+                    if (settings.StartWithWindows)
+                    {
+                        if (!StartupManager.EnableStartup())
+                        {
+                            logger.Error("Failed to enable startup", "SettingsForm");
+                            MessageBox.Show("Failed to enable startup with Windows. Please check the logs for details.", 
+                                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            settings.StartWithWindows = false;
+                            chkStartWithWindows.Checked = false;
+                        }
+                    }
+                    else
+                    {
+                        if (!StartupManager.DisableStartup())
+                        {
+                            logger.Error("Failed to disable startup", "SettingsForm");
+                            MessageBox.Show("Failed to disable startup with Windows. Please check the logs for details.", 
+                                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            settings.StartWithWindows = true;
+                            chkStartWithWindows.Checked = true;
+                        }
+                    }
+                }
 
                 settings.ToggleTransparencyShortcut = txtToggleTransparencyShortcut.Text;
                 settings.ToggleAutoHideShortcut = txtToggleAutoHideShortcut.Text;
