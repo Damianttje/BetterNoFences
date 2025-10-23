@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
 using System.Threading;
+using Fenceless.Util;
 
 namespace Peter
 {
@@ -34,6 +35,13 @@ namespace Peter
     /// </example>
     public class ShellContextMenu : NativeWindow
     {
+        // Custom menu item callback
+        public delegate string CustomMenuProvider(string filePath);
+        private CustomMenuProvider _customMenuProvider;
+        private string _currentFilePath;
+
+        // Event for custom menu item selection
+        public event EventHandler<CustomMenuEventArgs> CustomMenuItemSelected;
         #region Constructor
         /// <summary>Default constructor</summary>
         public ShellContextMenu()
@@ -436,12 +444,17 @@ namespace Peter
         #region ShowContextMenu()
 
         /// <summary>
-        /// Shows the context menu
+        /// Shows the context menu with custom menu items
         /// </summary>
         /// <param name="files">FileInfos (should all be in same directory)</param>
         /// <param name="pointScreen">Where to show the menu</param>
-        public void ShowContextMenu(FileInfo[] files, Point pointScreen)
+        /// <param name="customMenuProvider">Callback to provide custom menu item text</param>
+        public void ShowContextMenu(FileInfo[] files, Point pointScreen, CustomMenuProvider customMenuProvider = null)
         {
+            _customMenuProvider = customMenuProvider;
+            if (files != null && files.Length > 0)
+                _currentFilePath = files[0].FullName;
+            
             // Release all resources first.
             ReleaseAll();
             _arrPIDLs = GetPIDLs(files);
@@ -451,10 +464,35 @@ namespace Peter
         /// <summary>
         /// Shows the context menu
         /// </summary>
+        /// <param name="files">FileInfos (should all be in same directory)</param>
+        /// <param name="pointScreen">Where to show the menu</param>
+        public void ShowContextMenu(FileInfo[] files, Point pointScreen)
+        {
+            ShowContextMenu(files, pointScreen, null);
+        }
+
+        /// <summary>
+        /// Shows the context menu
+        /// </summary>
         /// <param name="dirs">DirectoryInfos (should all be in same directory)</param>
         /// <param name="pointScreen">Where to show the menu</param>
         public void ShowContextMenu(DirectoryInfo[] dirs, Point pointScreen)
         {
+            ShowContextMenu(dirs, pointScreen, null);
+        }
+
+        /// <summary>
+        /// Shows the context menu with custom menu items
+        /// </summary>
+        /// <param name="dirs">DirectoryInfos (should all be in same directory)</param>
+        /// <param name="pointScreen">Where to show the menu</param>
+        /// <param name="customMenuProvider">Callback to provide custom menu item text</param>
+        public void ShowContextMenu(DirectoryInfo[] dirs, Point pointScreen, CustomMenuProvider customMenuProvider = null)
+        {
+            _customMenuProvider = customMenuProvider;
+            if (dirs != null && dirs.Length > 0)
+                _currentFilePath = dirs[0].FullName;
+            
             // Release all resources first.
             ReleaseAll();
             _arrPIDLs = GetPIDLs(dirs);
@@ -498,6 +536,34 @@ namespace Peter
                     CMF.NORMAL |
                     ((Control.ModifierKeys & Keys.Shift) != 0 ? CMF.EXTENDEDVERBS : 0));
 
+                // Add custom menu items if provider is set
+                uint customCommandId = 0;
+                if (_customMenuProvider != null && !string.IsNullOrEmpty(_currentFilePath))
+                {
+                    try
+                    {
+                        var customMenuItemText = _customMenuProvider(_currentFilePath);
+                        if (!string.IsNullOrEmpty(customMenuItemText))
+                        {
+                            // Add separator before custom items
+                            InsertMenuItem(pMenu, 0, true, new MENUITEMINFO { fMask = MIIM.TYPE, fType = MFT.SEPARATOR });
+                            
+                            // Add custom menu item
+                            var menuItemInfo = new MENUITEMINFO(customMenuItemText)
+                            {
+                                fMask = MIIM.ID | MIIM.STRING | MIIM.STATE,
+                                wID = CMD_LAST + 1
+                            };
+                            InsertMenuItem(pMenu, 0, true, ref menuItemInfo);
+                            customCommandId = CMD_LAST + 1;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Instance?.Error($"Failed to add custom menu item: {ex.Message}", "ShellContextMenu");
+                    }
+                }
+
                 Marshal.QueryInterface(iContextMenuPtr, ref IID_IContextMenu2, out iContextMenuPtr2);
                 Marshal.QueryInterface(iContextMenuPtr, ref IID_IContextMenu3, out iContextMenuPtr3);
 
@@ -517,7 +583,17 @@ namespace Peter
 
                 if (nSelected != 0)
                 {
-                    InvokeCommand(_oContextMenu, nSelected, _strParentFolder, pointScreen);
+                    // Check if this is our custom command
+                    if (nSelected == customCommandId && _customMenuProvider != null)
+                    {
+                        // Custom menu item selected - trigger the callback
+                        OnCustomMenuItemSelected(_currentFilePath);
+                    }
+                    else
+                    {
+                        // Standard shell menu command
+                        InvokeCommand(_oContextMenu, nSelected, _strParentFolder, pointScreen);
+                    }
                 }
             }
             catch
@@ -545,6 +621,15 @@ namespace Peter
             }
         }
         #endregion
+
+        /// <summary>
+        /// Raises the CustomMenuItemSelected event
+        /// </summary>
+        /// <param name="filePath">The file path that was selected</param>
+        protected virtual void OnCustomMenuItemSelected(string filePath)
+        {
+            CustomMenuItemSelected?.Invoke(this, new CustomMenuEventArgs(filePath));
+        }
 
         #region Local variabled
         private IContextMenu _oContextMenu;
@@ -595,6 +680,14 @@ namespace Peter
         // Determines the default menu item on the specified menu
         [DllImport("user32", SetLastError = true, CharSet = CharSet.Auto)]
         private static extern int GetMenuDefaultItem(IntPtr hMenu, bool fByPos, uint gmdiFlags);
+
+        // Inserts a new menu item at the specified position in a menu
+        [DllImport("user32", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern bool InsertMenuItem(IntPtr hMenu, uint uPosition, bool uByPosition, ref MENUITEMINFO lpmii);
+
+        // Inserts a new menu item at the specified position in a menu (by value overload)
+        [DllImport("user32", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern bool InsertMenuItem(IntPtr hMenu, uint uPosition, bool uByPosition, MENUITEMINFO lpmii);
 
         #endregion
 
@@ -1544,6 +1637,21 @@ namespace Peter
             int code, IntPtr wParam, IntPtr lParam);
         // ************************************************************************
         #endregion
+    }
+    #endregion
+
+    #region CustomMenuEventArgs
+    /// <summary>
+    /// Event arguments for custom menu item selection
+    /// </summary>
+    public class CustomMenuEventArgs : EventArgs
+    {
+        public string FilePath { get; }
+
+        public CustomMenuEventArgs(string filePath)
+        {
+            FilePath = filePath;
+        }
     }
     #endregion
 

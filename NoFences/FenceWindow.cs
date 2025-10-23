@@ -1598,11 +1598,48 @@ namespace Fenceless
 
             if (hoveringItem != null && !ModifierKeys.HasFlag(Keys.Shift))
             {
-                shellContextMenu.ShowContextMenu(new[] { new FileInfo(hoveringItem) }, MousePosition);
+                shellContextMenu.CustomMenuItemSelected += OnRemoveFromFence;
+                shellContextMenu.ShowContextMenu(
+                    new[] { new FileInfo(hoveringItem) }, 
+                    MousePosition, 
+                    (filePath) => "Remove from fence"
+                );
             }
             else
             {
                 appContextMenu.Show(this, e.Location);
+            }
+        }
+
+        private void OnRemoveFromFence(object sender, CustomMenuEventArgs e)
+        {
+            try
+            {
+                var filePath = e.FilePath;
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    logger.Warning("Remove from fence called with empty file path", "FenceWindow");
+                    return;
+                }
+
+                var fileName = System.IO.Path.GetFileName(filePath);
+                logger.Info($"Removing '{fileName}' from fence '{fenceInfo.Name}' via context menu", "FenceWindow");
+
+                // Only remove from the fence list, don't delete the actual file
+                fenceInfo.Files.Remove(filePath);
+                hoveringItem = null;
+                
+                // Clear icon cache for the removed item to free memory
+                iconCache.ClearCache();
+                
+                Save();
+                Refresh();
+                
+                logger.Info($"Successfully removed '{fileName}' from fence via context menu", "FenceWindow");
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.HandleException(ex, "Failed to remove item from fence via context menu", true);
             }
         }
 
