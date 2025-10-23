@@ -1,3 +1,5 @@
+Note: Development has significantly slowed down due to [me](https://codeberg.org/damianttje) being the only developer and I've moved to linux. And this is a Windows-only application, with no plans to make this work on Linux.
+
 # Fenceless
 
 An improved fork of [NoFences](https://github.com/Twometer/NoFences) - organize your desktop with transparent containers.
