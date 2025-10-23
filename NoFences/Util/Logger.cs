@@ -25,6 +25,7 @@ namespace Fenceless.Util
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private readonly Task _logWriterTask;
         private readonly string _logFilePath;
+        private readonly object _disposeLock = new object();
         private bool _disposed = false;
 
         public LogLevel MinimumLogLevel { get; set; } = LogLevel.Debug;
@@ -184,23 +185,26 @@ namespace Fenceless.Util
 
         public void Dispose()
         {
-            if (_disposed) return;
-            _disposed = true;
+            lock (_disposeLock)
+            {
+                if (_disposed) return;
+                _disposed = true;
 
-            Info("Logger shutting down", "Logger");
-            
-            _cancellationTokenSource?.Cancel();
-            
-            try
-            {
-                _logWriterTask?.Wait(TimeSpan.FromSeconds(2));
+                Info("Logger shutting down", "Logger");
+                
+                _cancellationTokenSource?.Cancel();
+                
+                try
+                {
+                    _logWriterTask?.Wait(TimeSpan.FromSeconds(2));
+                }
+                catch
+                {
+                    // Ignore timeout during shutdown
+                }
+                
+                _cancellationTokenSource?.Dispose();
             }
-            catch
-            {
-                // Ignore timeout during shutdown
-            }
-            
-            _cancellationTokenSource?.Dispose();
         }
 
         private class LogEntry

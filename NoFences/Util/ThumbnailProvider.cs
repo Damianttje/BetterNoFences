@@ -32,6 +32,7 @@ namespace Fenceless.Util
         private readonly IDictionary<string, ThumbnailState> iconCache = new Dictionary<string, ThumbnailState>();
         public event EventHandler IconThumbnailLoaded;
         private bool disposed = false;
+        private readonly Logger logger = Logger.Instance;
 
         public bool IsSupported(string path)
         {
@@ -67,20 +68,25 @@ namespace Fenceless.Util
                     semaphore.Wait();
                     if (disposed) return;
 
-                    using (MemoryStream ms = new MemoryStream(File.ReadAllBytes(path)))
+                    using (var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096))
                     {
-                        using (var img = Image.FromStream(ms))
+                        using (var ms = new MemoryStream())
                         {
-                            var thumb = (Bitmap)img.GetThumbnailImage(32, 32, () => false, IntPtr.Zero);
-                            var icon = Icon.FromHandle(thumb.GetHicon());
-                            state.icon = icon;
-                            IconThumbnailLoaded?.Invoke(this, new EventArgs());
+                            fileStream.CopyTo(ms, 8192);
+                            ms.Position = 0;
+                            using (var img = Image.FromStream(ms))
+                            {
+                                var thumb = (Bitmap)img.GetThumbnailImage(32, 32, () => false, IntPtr.Zero);
+                                var icon = Icon.FromHandle(thumb.GetHicon());
+                                state.icon = icon;
+                                IconThumbnailLoaded?.Invoke(this, new EventArgs());
+                            }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to generate thumbnail for {path}: {ex.Message}");
+                    logger?.Error($"Failed to generate thumbnail for {path}", "ThumbnailProvider", ex);
                 }
                 finally
                 {

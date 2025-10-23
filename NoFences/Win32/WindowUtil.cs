@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using Fenceless.Util;
 
 namespace Fenceless.Win32
 {
@@ -116,10 +117,40 @@ namespace Fenceless.Win32
 
         public static void HideFromAltTab(IntPtr Handle)
         {
-            SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
-            int exStyle = (int)GetWindowLong(Handle, (int)GetWindowLongFields.GWL_EXSTYLE);
-            exStyle |= (int)ExtendedWindowStyles.WS_EX_TOOLWINDOW;
-            SetWindowLong(Handle, (int)GetWindowLongFields.GWL_EXSTYLE, (IntPtr)exStyle);
+            try
+            {
+                if (Handle == IntPtr.Zero)
+                {
+                    Logger.Instance?.Warning("Attempted to hide null window handle from Alt+Tab", "WindowUtil");
+                    return;
+                }
+
+                // First move to bottom to avoid flicker
+                if (!SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE))
+                {
+                    var error = Marshal.GetLastWin32Error();
+                    Logger.Instance?.Warning($"SetWindowPos failed with error {error} when hiding from Alt+Tab", "WindowUtil");
+                }
+
+                // Get current extended style
+                var exStyle = GetWindowLong(Handle, (int)GetWindowLongFields.GWL_EXSTYLE);
+                if (exStyle == IntPtr.Zero)
+                {
+                    var error = Marshal.GetLastWin32Error();
+                    Logger.Instance?.Warning($"GetWindowLong failed with error {error} when hiding from Alt+Tab", "WindowUtil");
+                    return;
+                }
+
+                // Add WS_EX_TOOLWINDOW style
+                exStyle = new IntPtr(exStyle.ToInt64() | (int)ExtendedWindowStyles.WS_EX_TOOLWINDOW);
+                SetWindowLong(Handle, (int)GetWindowLongFields.GWL_EXSTYLE, exStyle);
+                
+                Logger.Instance?.Debug("Successfully hidden window from Alt+Tab", "WindowUtil");
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance?.Error("Failed to hide window from Alt+Tab", "WindowUtil", ex);
+            }
         }
     }
 }

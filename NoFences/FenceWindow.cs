@@ -56,8 +56,8 @@ namespace Fenceless
         private int dragTargetIndex = -1;
         private const int DragThreshold = 5; // Minimum distance to start drag
         
-        // Icon cache to prevent memory leaks during drag operations
-        private readonly Dictionary<string, Bitmap> iconCache = new Dictionary<string, Bitmap>();
+        // Thread-safe icon cache with automatic memory management
+        private readonly IconCache iconCache = new IconCache(50);
         private Timer dragRefreshTimer;
 
         private readonly ThrottledExecution throttledMove = new ThrottledExecution(TimeSpan.FromSeconds(4));
@@ -226,39 +226,8 @@ namespace Fenceless
 
                 // Get or create cached scaled bitmap
                 var cacheKey = $"{entry.Path}_{iconSize}";
-                Bitmap iconBitmap = null;
+                var iconBitmap = iconCache.GetIcon(entry.Path, iconSize);
                 
-                if (iconCache.ContainsKey(cacheKey))
-                {
-                    iconBitmap = iconCache[cacheKey];
-                }
-                else
-                {
-                    // Create and cache the scaled bitmap
-                    if (icon.Width != iconSize || icon.Height != iconSize)
-                    {
-                        iconBitmap = new Bitmap(iconSize, iconSize);
-                        using (var graphics = Graphics.FromImage(iconBitmap))
-                        {
-                            graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                            graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                            graphics.DrawIcon(icon, new Rectangle(0, 0, iconSize, iconSize));
-                        }
-                        
-                        // Add to cache but limit cache size
-                        if (iconCache.Count > 100) // Limit cache to prevent memory buildup
-                        {
-                            ClearOldCacheEntries();
-                        }
-                        iconCache[cacheKey] = iconBitmap;
-                    }
-                    else
-                    {
-                        iconBitmap = icon.ToBitmap();
-                        iconCache[cacheKey] = iconBitmap;
-                    }
-                }
-
                 if (iconBitmap == null) return; // Safety check
 
                 var textPosition = new PointF(x, y + iconBitmap.Height + 5);
@@ -375,18 +344,9 @@ namespace Fenceless
         {
             try
             {
-                // Remove half of the cache entries to keep memory usage reasonable
-                var entriesToRemove = iconCache.Keys.Take(iconCache.Count / 2).ToList();
-                foreach (var key in entriesToRemove)
-                {
-                    if (iconCache.TryGetValue(key, out var bitmap))
-                    {
-                        bitmap?.Dispose();
-                        iconCache.Remove(key);
-                    }
-                }
-                
-                logger.Debug($"Cleared {entriesToRemove.Count} cached icon entries", "FenceWindow");
+                // Clear the cache - the LRU cache will handle automatic cleanup
+                iconCache.ClearCache();
+                logger.Debug("Icon cache cleared", "FenceWindow");
             }
             catch (Exception ex)
             {
@@ -447,7 +407,7 @@ namespace Fenceless
             ReloadFonts();
             
             // Clear icon cache if icon size changed
-            if (iconCache.Any(kvp => !kvp.Key.EndsWith($"_{fenceInfo.IconSize}")))
+            if (iconCache.CacheCount > 0)
             {
                 ClearIconCache();
             }
@@ -467,17 +427,9 @@ namespace Fenceless
         {
             try
             {
-                logger.Debug($"Clearing icon cache ({iconCache.Count} entries)", "FenceWindow");
+                logger.Debug($"Clearing icon cache ({iconCache.CacheCount} entries)", "FenceWindow");
                 
-                foreach (var bitmap in iconCache.Values)
-                {
-                    bitmap?.Dispose();
-                }
-                iconCache.Clear();
-                
-                // Force garbage collection after clearing cache
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
+                iconCache.ClearCache();
             }
             catch (Exception ex)
             {
@@ -1092,12 +1044,8 @@ namespace Fenceless
             {
                 logger?.Debug("Disposing fence window", "FenceWindow");
                 
-                // Dispose cached icons
-                foreach (var bitmap in iconCache.Values)
-                {
-                    bitmap?.Dispose();
-                }
-                iconCache.Clear();
+                // Dispose icon cache (handles all cached bitmaps)
+                iconCache?.Dispose();
                 
                 // Dispose timers
                 autoHideTimer?.Dispose();
@@ -1819,14 +1767,11 @@ namespace Fenceless
                 var cacheKey = $"{entry.Path}_{iconSize}";
                 
                 // Use cached icon if available
-                Bitmap iconBitmap = null;
-                if (iconCache.ContainsKey(cacheKey))
+                var iconBitmap = iconCache.GetIcon(entry.Path, iconSize);
+                
+                // Fallback to creating temporary bitmap if cache failed (shouldn't happen often)
+                if (iconBitmap == null)
                 {
-                    iconBitmap = iconCache[cacheKey];
-                }
-                else
-                {
-                    // Fallback to creating temporary bitmap (shouldn't happen often)
                     var icon = entry.ExtractIcon(thumbnailProvider);
                     if (icon.Width != iconSize || icon.Height != iconSize)
                     {
@@ -1875,10 +1820,10 @@ namespace Fenceless
                     g.DrawString(entry.Name, iconFont, textBrush, textRect, stringFormat);
                 }
                 
-                // Only dispose if we created a temporary bitmap
-                if (!iconCache.ContainsKey(cacheKey) && iconBitmap != null)
+                // The icon cache manages disposal, so no need to dispose here
+                if (iconBitmap == null)
                 {
-                    iconBitmap.Dispose();
+                    logger.Warning($"Failed to get icon for dragged item '{itemPath}'", "FenceWindow");
                 }
             }
             catch (Exception ex)

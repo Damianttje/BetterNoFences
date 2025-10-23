@@ -1,8 +1,8 @@
 ﻿using System.Drawing;
+using System.IO;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System;
-using System.IO;
 using Fenceless.Win32;
 using Fenceless.Util;
 
@@ -14,7 +14,7 @@ namespace Fenceless.Model
 
         public EntryType Type { get; }
 
-        public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
+        public string Name => System.IO.Path.GetFileNameWithoutExtension(this.Path);
 
         private FenceEntry(string path, EntryType type)
         {
@@ -24,11 +24,34 @@ namespace Fenceless.Model
 
         public static FenceEntry FromPath(string path)
         {
-            if (File.Exists(path))
-                return new FenceEntry(path, EntryType.File);
-            else if (Directory.Exists(path))
-                return new FenceEntry(path, EntryType.Folder);
-            else return null;
+            if (string.IsNullOrWhiteSpace(path))
+                return null;
+                
+            // Validate and sanitize the path
+            try
+            {
+                var fullPath = System.IO.Path.GetFullPath(path);
+                
+                // Additional security checks
+                if (fullPath.Contains("..") || fullPath.Contains("~"))
+                {
+                    Logger.Instance?.Warning($"Potentially unsafe path blocked: {fullPath}", "FenceEntry");
+                    return null;
+                }
+                
+                // Check if path exists
+                if (File.Exists(fullPath))
+                    return new FenceEntry(fullPath, EntryType.File);
+                else if (Directory.Exists(fullPath))
+                    return new FenceEntry(fullPath, EntryType.Folder);
+                else 
+                    return null;
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance?.Warning($"Invalid path provided: {path} - {ex.Message}", "FenceEntry");
+                return null;
+            }
         }
 
         public Icon ExtractIcon(ThumbnailProvider thumbnailProvider)
@@ -53,10 +76,25 @@ namespace Fenceless.Model
                 var logger = Logger.Instance;
                 try
                 {
-                    // Verify the path still exists before trying to open
-                    if (!File.Exists(Path) && !Directory.Exists(Path))
+                    // Validate the path before using it
+                    if (string.IsNullOrWhiteSpace(Path))
                     {
-                        logger?.Warning($"Cannot open item that no longer exists: {Path}", "FenceEntry");
+                        logger?.Warning("Cannot open item with null or empty path", "FenceEntry");
+                        return;
+                    }
+                    
+                    // Sanitize path and perform security checks
+                    var fullPath = System.IO.Path.GetFullPath(this.Path);
+                    if (fullPath.Contains("..") || fullPath.Contains("~"))
+                    {
+                        logger?.Warning($"Potentially unsafe path blocked: {fullPath}", "FenceEntry");
+                        return;
+                    }
+                    
+                    // Verify the path still exists before trying to open
+                    if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
+                    {
+                        logger?.Warning($"Cannot open item that no longer exists: {fullPath}", "FenceEntry");
                         return;
                     }
                     
@@ -64,24 +102,24 @@ namespace Fenceless.Model
                     {
                         var startInfo = new ProcessStartInfo
                         {
-                            FileName = Path,
+                            FileName = fullPath,
                             UseShellExecute = true,
-                            ErrorDialog = true
+                            ErrorDialog = false // We'll handle errors ourselves
                         };
                         Process.Start(startInfo);
-                        logger?.Debug($"Opened file: {Path}", "FenceEntry");
+                        logger?.Debug($"Opened file: {fullPath}", "FenceEntry");
                     }
                     else if (Type == EntryType.Folder)
                     {
                         var startInfo = new ProcessStartInfo
                         {
                             FileName = "explorer.exe",
-                            Arguments = $"\"{Path}\"",
+                            Arguments = $"\"{fullPath}\"",
                             UseShellExecute = true,
-                            ErrorDialog = true
+                            ErrorDialog = false // We'll handle errors ourselves
                         };
                         Process.Start(startInfo);
-                        logger?.Debug($"Opened folder: {Path}", "FenceEntry");
+                        logger?.Debug($"Opened folder: {fullPath}", "FenceEntry");
                     }
                 }
                 catch (Exception e)

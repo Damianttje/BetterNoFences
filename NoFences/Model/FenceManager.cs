@@ -20,6 +20,7 @@ namespace Fenceless.Model
         private int toggleAutoHideHotkeyId = -1;
         private int showAllFencesHotkeyId = -1;
         private readonly Logger logger;
+        private static readonly object _saveLock = new object();
 
         public FenceManager()
         {
@@ -256,32 +257,38 @@ namespace Fenceless.Model
 
         public void SaveAllFences()
         {
-            try
+            lock (_saveLock)
             {
-                logger.Info("Saving all fences", "FenceManager");
-                int savedCount = 0;
-                int errorCount = 0;
-                
-                foreach (var fence in activeFences.ToList())
+                try
                 {
-                    try
+                    logger.Info("Saving all fences", "FenceManager");
+                    int savedCount = 0;
+                    int errorCount = 0;
+                    
+                    // Create a snapshot to avoid modification during enumeration
+                    var fencesSnapshot = activeFences.ToList();
+                    
+                    foreach (var fence in fencesSnapshot)
                     {
-                        var fenceInfo = fence.GetFenceInfo();
-                        UpdateFence(fenceInfo);
-                        savedCount++;
+                        try
+                        {
+                            var fenceInfo = fence.GetFenceInfo();
+                            UpdateFence(fenceInfo);
+                            savedCount++;
+                        }
+                        catch (Exception ex)
+                        {
+                            errorCount++;
+                            logger.Error("Failed to save individual fence", "FenceManager", ex);
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        errorCount++;
-                        logger.Error("Failed to save individual fence", "FenceManager", ex);
-                    }
+                    
+                    logger.Info($"Saved {savedCount} fence(s) successfully. {errorCount} error(s) encountered.", "FenceManager");
                 }
-                
-                logger.Info($"Saved {savedCount} fence(s) successfully. {errorCount} error(s) encountered.", "FenceManager");
-            }
-            catch (Exception ex)
-            {
-                logger.Error("Failed to save all fences", "FenceManager", ex);
+                catch (Exception ex)
+                {
+                    logger.Error("Failed to save all fences", "FenceManager", ex);
+                }
             }
         }
 

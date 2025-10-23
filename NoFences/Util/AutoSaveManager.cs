@@ -9,6 +9,7 @@ namespace Fenceless.Util
     {
         private readonly Timer autoSaveTimer;
         private bool disposed = false;
+        private readonly Logger logger = Logger.Instance;
         
         public AutoSaveManager()
         {
@@ -29,7 +30,7 @@ namespace Fenceless.Util
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Auto-save failed: {ex.Message}");
+                        logger?.Error("Auto-save failed", "AutoSaveManager", ex);
                     }
                 });
             }

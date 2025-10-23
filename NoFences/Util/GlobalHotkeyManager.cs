@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using Fenceless.Model;
 
 namespace Fenceless.Util
 {
@@ -23,6 +24,7 @@ namespace Fenceless.Util
         private readonly Dictionary<int, Action> hotkeyActions = new Dictionary<int, Action>();
         private int nextHotkeyId = 1;
         private bool disposed = false;
+        private readonly Logger logger = Logger.Instance;
 
         public GlobalHotkeyManager()
         {
@@ -44,14 +46,26 @@ namespace Fenceless.Util
                 {
                     hotkeyActions[id] = action;
                 }
+                logger?.Debug($"Successfully registered hotkey ID {id} (Ctrl:{ctrl} Alt:{alt} Shift:{shift} Win:{win} Key:{key})", "GlobalHotkeyManager");
                 return id;
             }
-            return -1;
+            else
+            {
+                logger?.Warning($"Failed to register hotkey (Ctrl:{ctrl} Alt:{alt} Shift:{shift} Win:{win} Key:{key})", "GlobalHotkeyManager");
+                return -1;
+            }
         }
 
         public void UnregisterHotkey(int id)
         {
-            UnregisterHotKey(messageWindow.Handle, id);
+            if (UnregisterHotKey(messageWindow.Handle, id))
+            {
+                logger?.Debug($"Successfully unregistered hotkey ID {id}", "GlobalHotkeyManager");
+            }
+            else
+            {
+                logger?.Warning($"Failed to unregister hotkey ID {id}", "GlobalHotkeyManager");
+            }
             hotkeyActions.Remove(id);
         }
 
@@ -65,7 +79,7 @@ namespace Fenceless.Util
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error executing hotkey action: {ex.Message}");
+                    logger?.Error($"Error executing hotkey action for ID {id}", "GlobalHotkeyManager", ex);
                 }
             }
         }
