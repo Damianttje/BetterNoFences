@@ -1,6 +1,7 @@
 using DarkUI.Controls;
 using DarkUI.Forms;
 using Fenceless.Util;
+using Fenceless.Win32;
 using System;
 using System.Drawing;
 using System.IO;

@@ -125,13 +125,6 @@ namespace Fenceless.Win32
                     return;
                 }
 
-                // First move to bottom to avoid flicker
-                if (!SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE))
-                {
-                    var error = Marshal.GetLastWin32Error();
-                    Logger.Instance?.Warning($"SetWindowPos failed with error {error} when hiding from Alt+Tab", "WindowUtil");
-                }
-
                 // Get current extended style
                 var exStyle = GetWindowLong(Handle, (int)GetWindowLongFields.GWL_EXSTYLE);
                 if (exStyle == IntPtr.Zero)
@@ -141,9 +134,14 @@ namespace Fenceless.Win32
                     return;
                 }
 
-                // Add WS_EX_TOOLWINDOW style
+                // Add WS_EX_TOOLWINDOW style and remove WS_EX_APPWINDOW style
                 exStyle = new IntPtr(exStyle.ToInt64() | (int)ExtendedWindowStyles.WS_EX_TOOLWINDOW);
+                exStyle = new IntPtr(exStyle.ToInt64() & ~0x00040000); // Remove WS_EX_APPWINDOW
+                
                 SetWindowLong(Handle, (int)GetWindowLongFields.GWL_EXSTYLE, exStyle);
+
+                // Move window to bottom to ensure it doesn't appear in Alt+Tab
+                SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
                 
                 Logger.Instance?.Debug("Successfully hidden window from Alt+Tab", "WindowUtil");
             }

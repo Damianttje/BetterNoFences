@@ -67,6 +67,18 @@ namespace Fenceless
 
         private readonly ThumbnailProvider thumbnailProvider = new ThumbnailProvider();
 
+        // Override CreateParams to hide from Alt+Tab
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams cp = base.CreateParams;
+                // Add WS_EX_TOOLWINDOW to hide from Alt+Tab
+                cp.ExStyle |= 0x00000080; // WS_EX_TOOLWINDOW
+                return cp;
+            }
+        }
+
         private void ReloadFonts()
         {
             var family = new FontFamily("Segoe UI");
@@ -79,11 +91,14 @@ namespace Fenceless
             logger = Logger.Instance;
             logger.Debug($"Creating fence window for '{fenceInfo.Name}'", "FenceWindow");
             
+            // Set form properties to hide from Alt+Tab before initialization
+            this.ShowInTaskbar = false;
+            this.FormBorderStyle = FormBorderStyle.None;
+            
             InitializeComponent();
             SetupEventHandlers();
             DropShadow.ApplyShadows(this);
             BlurUtil.EnableBlur(Handle);
-            WindowUtil.HideFromAltTab(Handle);
             DesktopUtil.GlueToDesktop(Handle);
             //DesktopUtil.PreventMinimize(Handle);
             logicalTitleHeight = (fenceInfo.TitleHeight < 16 || fenceInfo.TitleHeight > 100) ? 35 : fenceInfo.TitleHeight;
@@ -498,6 +513,14 @@ namespace Fenceless
         private void StopAutoHideTimer()
         {
             autoHideTimer.Stop();
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            
+            // Additional protection: Hide from Alt+Tab after handle is created
+            WindowUtil.HideFromAltTab(Handle);
         }
 
         protected override void WndProc(ref Message m)
