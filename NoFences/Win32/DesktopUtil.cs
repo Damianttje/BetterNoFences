@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using Fenceless.Util;
 
 namespace Fenceless.Win32
 {
@@ -25,9 +26,15 @@ namespace Fenceless.Win32
         [DllImport("user32.dll", SetLastError = true)]
         static extern IntPtr FindWindowEx(IntPtr parentHandle, IntPtr childAfter, string className, string windowTitle);
 
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
-        static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
+        [DllImport("user32.dll")]
+        static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        private static IntPtr workerW = IntPtr.Zero;
 
         public static void PreventMinimize(IntPtr handle)
         {
@@ -37,9 +44,47 @@ namespace Fenceless.Win32
 
         public static void GlueToDesktop(IntPtr handle)
         {
-            IntPtr nWinHandle = FindWindowEx(IntPtr.Zero, IntPtr.Zero, "Progman", null);
-            SetWindowLongPtr(handle, GWL_HWNDPARENT, nWinHandle.ToInt32());
-           
+            try
+            {
+                // Get the WorkerW window that contains the desktop icons
+                IntPtr progman = FindWindow("Progman", null);
+                
+                // Send message to Progman to spawn WorkerW
+                SendMessage(progman, 0x052C, IntPtr.Zero, IntPtr.Zero);
+                
+                // Find the WorkerW window
+                workerW = IntPtr.Zero;
+                EnumWindows(new EnumWindowsProc(EnumWindowsCallback), IntPtr.Zero);
+                
+                // If WorkerW found, set it as parent; otherwise use Progman
+                IntPtr desktopHandle = workerW != IntPtr.Zero ? workerW : progman;
+                
+                if (desktopHandle != IntPtr.Zero)
+                {
+                    WindowUtil.SetWindowLong(handle, GWL_HWNDPARENT, desktopHandle);
+                    WindowUtil.SetWindowPos(handle, WindowUtil.HWND_BOTTOM, 0, 0, 0, 0,
+                        WindowUtil.SWP_NOMOVE | WindowUtil.SWP_NOSIZE | WindowUtil.SWP_NOACTIVATE);
+                    Logger.Instance?.Debug($"Window glued to desktop owner (handle: {desktopHandle})", "DesktopUtil");
+                }
+                else
+                {
+                    Logger.Instance?.Warning("Could not find desktop handle to glue window", "DesktopUtil");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance?.Error("Failed to glue window to desktop", "DesktopUtil", ex);
+            }
+        }
+
+        private static bool EnumWindowsCallback(IntPtr hWnd, IntPtr lParam)
+        {
+            IntPtr shellDllDefView = FindWindowEx(hWnd, IntPtr.Zero, "SHELLDLL_DefView", null);
+            if (shellDllDefView != IntPtr.Zero)
+            {
+                workerW = FindWindowEx(IntPtr.Zero, hWnd, "WorkerW", null);
+            }
+            return true;
         }
     }
 }

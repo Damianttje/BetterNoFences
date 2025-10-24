@@ -8,8 +8,10 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using static Fenceless.Win32.WindowUtil;
+using FormsTimer = System.Windows.Forms.Timer;
 
 namespace Fenceless
 {
@@ -44,9 +46,12 @@ namespace Fenceless
 
         // New fields for transparency and autohide
         private bool isAutoHidden = false;
-        private Timer autoHideTimer;
+    private FormsTimer autoHideTimer;
         private double normalOpacity = 1.0;
         private bool isMouseInside = false;
+        
+        // Visibility monitor to prevent Show Desktop from hiding the window
+    private System.Threading.Timer visibilityMonitor;
 
         // Internal drag and drop fields
         private bool isDraggingItem = false;
@@ -58,7 +63,7 @@ namespace Fenceless
         
         // Thread-safe icon cache with automatic memory management
         private readonly IconCache iconCache = new IconCache(50);
-        private Timer dragRefreshTimer;
+    private FormsTimer dragRefreshTimer;
 
         private readonly ThrottledExecution throttledMove = new ThrottledExecution(TimeSpan.FromSeconds(4));
         private readonly ThrottledExecution throttledResize = new ThrottledExecution(TimeSpan.FromSeconds(4));
@@ -67,7 +72,7 @@ namespace Fenceless
 
         private readonly ThumbnailProvider thumbnailProvider = new ThumbnailProvider();
 
-        // Override CreateParams to hide from Alt+Tab
+        // Override CreateParams to hide from Alt+Tab and prevent minimize on Show Desktop
         protected override CreateParams CreateParams
         {
             get
@@ -75,6 +80,10 @@ namespace Fenceless
                 CreateParams cp = base.CreateParams;
                 // Add WS_EX_TOOLWINDOW to hide from Alt+Tab
                 cp.ExStyle |= 0x00000080; // WS_EX_TOOLWINDOW
+                // Add WS_EX_NOACTIVATE to prevent being minimized on Show Desktop
+                cp.ExStyle |= 0x08000000; // WS_EX_NOACTIVATE
+                // Remove WS_EX_APPWINDOW to prevent Show Desktop from affecting this window
+                cp.ExStyle &= ~0x00040000; // Remove WS_EX_APPWINDOW
                 return cp;
             }
         }
@@ -99,8 +108,7 @@ namespace Fenceless
             SetupEventHandlers();
             DropShadow.ApplyShadows(this);
             BlurUtil.EnableBlur(Handle);
-            DesktopUtil.GlueToDesktop(Handle);
-            //DesktopUtil.PreventMinimize(Handle);
+            
             logicalTitleHeight = (fenceInfo.TitleHeight < 16 || fenceInfo.TitleHeight > 100) ? 35 : fenceInfo.TitleHeight;
             titleHeight = LogicalToDeviceUnits(logicalTitleHeight);
             
@@ -454,7 +462,7 @@ namespace Fenceless
 
         private void InitializeAutoHide()
         {
-            autoHideTimer = new Timer();
+            autoHideTimer = new FormsTimer();
             autoHideTimer.Interval = fenceInfo.AutoHideDelay;
             autoHideTimer.Tick += AutoHideTimer_Tick;
         }
@@ -520,11 +528,95 @@ namespace Fenceless
             base.OnHandleCreated(e);
             
             // Additional protection: Hide from Alt+Tab after handle is created
-            WindowUtil.HideFromAltTab(Handle);
+            HideFromAltTab(Handle);
+            
+            // Prevent minimize to survive Show Desktop
+            DesktopUtil.PreventMinimize(Handle);
+            
+            // Start visibility monitor to keep window visible
+            InitializeVisibilityMonitor();
+            
+            logger?.Debug($"Fence window '{fenceInfo?.Name ?? "Unknown"}' configured to prevent minimize", "FenceWindow");
+        }
+
+        private void InitializeVisibilityMonitor()
+        {
+            visibilityMonitor = new System.Threading.Timer(_ => EnsureFenceVisible(true), null,
+                TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250));
+        }
+
+        private void EnsureFenceVisible(bool triggeredByMonitor = false)
+        {
+            if (IsDisposed || !IsHandleCreated || isAutoHidden)
+                return;
+
+            if (InvokeRequired)
+            {
+                try
+                {
+                    BeginInvoke(new Action(() => EnsureFenceVisible(triggeredByMonitor)));
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Window disposed while invoke was pending
+                }
+                return;
+            }
+
+            bool isHidden = !IsWindowVisible(Handle) ||
+                            IsIconic(Handle) ||
+                            !Visible ||
+                            WindowState == FormWindowState.Minimized;
+
+            if (isHidden)
+            {
+                Visible = true;
+                if (WindowState == FormWindowState.Minimized)
+                {
+                    WindowState = FormWindowState.Normal;
+                }
+
+                ShowWindow(Handle, SW_SHOWNOACTIVATE);
+
+                if (!triggeredByMonitor)
+                {
+                    logger?.Debug($"Fence window '{fenceInfo?.Name ?? "Unknown"}' restored after Show Desktop", "FenceWindow");
+                }
+            }
+
+            SendToDesktopBack();
+        }
+
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+            DesktopUtil.GlueToDesktop(Handle);
+            SendToDesktopBack();
+            logger?.Debug($"Fence window '{fenceInfo?.Name ?? "Unknown"}' attached to desktop", "FenceWindow");
+        }
+
+        private void SendToDesktopBack()
+        {
+            SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0,
+                SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+        }
+
+        protected override void SetVisibleCore(bool value)
+        {
+            // Prevent Show Desktop from hiding the window
+            // Only allow hiding if we're auto-hiding or being disposed
+            if (!value && !isAutoHidden && !this.IsDisposed && this.IsHandleCreated)
+            {
+                // Ignore hide requests from Show Desktop
+                return;
+            }
+            base.SetVisibleCore(value);
         }
 
         protected override void WndProc(ref Message m)
         {
+            const uint HideWindowFlag = 0x0080;
+
             // Remove border
             if (m.Msg == 0x0083)
             {
@@ -539,17 +631,78 @@ namespace Fenceless
                 Minify();
             }
 
-            // Prevent maximize
-            if ((m.Msg == WM_SYSCOMMAND) && m.WParam.ToInt32() == 0xF032)
+            // Prevent maximize/minimize
+            if (m.Msg == WM_SYSCOMMAND)
             {
+                var command = m.WParam.ToInt32() & 0xFFF0;
+                if (command == SC_MAXIMIZE || command == SC_MINIMIZE)
+                {
+                    m.Result = IntPtr.Zero;
+                    return;
+                }
+            }
+
+            // Prevent window from being hidden (Show Desktop)
+            if (m.Msg == WM_SHOWWINDOW && m.WParam == IntPtr.Zero)
+            {
+                // Ignore hide commands unless we're auto-hiding or user is closing
+                if (!isAutoHidden && !this.IsDisposed)
+                {
+                    m.Result = IntPtr.Zero;
+                    return;
+                }
+            }
+
+            // Prevent window position changes that would hide the window (Show Desktop button)
+            if (m.Msg == WM_WINDOWPOSCHANGING)
+            {
+                var wp = Marshal.PtrToStructure<WINDOWPOS>(m.LParam);
+
+                // Check if the window is being moved off-screen or hidden
+                if ((wp.flags & HideWindowFlag) != 0)
+                {
+                    // Remove the hide flag unless we're auto-hiding
+                    if (!isAutoHidden && !IsDisposed)
+                    {
+                        wp.flags &= ~HideWindowFlag;
+                        Marshal.StructureToPtr(wp, m.LParam, false);
+                    }
+                }
+            }
+
+            if (m.Msg == WM_SIZE && m.WParam.ToInt32() == SIZE_MINIMIZED)
+            {
+                EnsureFenceVisible();
                 m.Result = IntPtr.Zero;
                 return;
+            }
+
+            if (m.Msg == WM_WINDOWPOSCHANGED)
+            {
+                var wp = Marshal.PtrToStructure<WINDOWPOS>(m.LParam);
+                if ((wp.flags & HideWindowFlag) != 0 && !isAutoHidden && !IsDisposed)
+                {
+                    EnsureFenceVisible();
+                    m.Result = IntPtr.Zero;
+                    return;
+                }
+            }
+
+            if (m.Msg == WM_COMMAND)
+            {
+                int commandId = m.WParam.ToInt32() & 0xFFFF;
+                if ((commandId == MIN_ALL || commandId == MIN_ALL_UNDO) && !isAutoHidden)
+                {
+                    EnsureFenceVisible();
+                    m.Result = IntPtr.Zero;
+                    return;
+                }
             }
 
             // Prevent foreground
             if (m.Msg == WM_SETFOCUS)
             {
-                SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+                SendToDesktopBack();
                 return;
             }
 
@@ -831,7 +984,7 @@ namespace Fenceless
                 // Use throttled refresh during drag to prevent excessive repainting
                 if (dragRefreshTimer == null)
                 {
-                    dragRefreshTimer = new Timer();
+                    dragRefreshTimer = new FormsTimer();
                     dragRefreshTimer.Interval = 16; // ~60 FPS max
                     dragRefreshTimer.Tick += (s, args) =>
                     {
@@ -1073,6 +1226,7 @@ namespace Fenceless
                 // Dispose timers
                 autoHideTimer?.Dispose();
                 dragRefreshTimer?.Dispose();
+                visibilityMonitor?.Dispose();
                 
                 // Dispose fonts
                 titleFont?.Dispose();
@@ -1483,7 +1637,7 @@ namespace Fenceless
                 
                 // Create a highlight effect by temporarily changing the border
                 var originalOpacity = this.Opacity;
-                var highlightTimer = new Timer();
+                var highlightTimer = new FormsTimer();
                 var flashCount = 0;
                 
                 highlightTimer.Interval = 200;

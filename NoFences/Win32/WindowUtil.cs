@@ -29,8 +29,44 @@ namespace Fenceless.Win32
         public const int WM_ACTIVATEAPP = 0x001C;
         public const int WM_ACTIVATE = 0x0006;
         public const int WM_SETFOCUS = 0x0007;
+        public const int WM_SHOWWINDOW = 0x0018;
+        public const int WM_SIZE = 0x0005;
+    public const int WM_COMMAND = 0x0111;
+    public const int WM_WINDOWPOSCHANGING = 0x0046;
+    public const int WM_WINDOWPOSCHANGED = 0x0047;
+    // Shell taskbar commands triggered by Show Desktop
+    public const int MIN_ALL = 0x01A3;
+    public const int MIN_ALL_UNDO = 0x01A0;
         public static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
-        public const int WM_WINDOWPOSCHANGING = 0x0046;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct WINDOWPOS
+        {
+            public IntPtr hwnd;
+            public IntPtr hwndInsertAfter;
+            public int x;
+            public int y;
+            public int cx;
+            public int cy;
+            public uint flags;
+        }
+
+        public const int SIZE_RESTORED = 0;
+        public const int SIZE_MINIMIZED = 1;
+
+        public const int SW_SHOWNORMAL = 1;
+        public const int SW_SHOWNOACTIVATE = 4;
+        public const int SW_SHOW = 5;
+        public const int SW_RESTORE = 9;
+
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsIconic(IntPtr hWnd);
 
         [DllImport("user32.dll")]
         public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X,
@@ -54,6 +90,7 @@ namespace Fenceless.Win32
         {
             // ...
             WS_EX_TOOLWINDOW = 0x00000080,
+            WS_EX_NOACTIVATE = 0x08000000,
             // ...
         }
 
@@ -134,8 +171,9 @@ namespace Fenceless.Win32
                     return;
                 }
 
-                // Add WS_EX_TOOLWINDOW style and remove WS_EX_APPWINDOW style
+                // Add WS_EX_TOOLWINDOW and WS_EX_NOACTIVATE styles, remove WS_EX_APPWINDOW style
                 exStyle = new IntPtr(exStyle.ToInt64() | (int)ExtendedWindowStyles.WS_EX_TOOLWINDOW);
+                exStyle = new IntPtr(exStyle.ToInt64() | (int)ExtendedWindowStyles.WS_EX_NOACTIVATE);
                 exStyle = new IntPtr(exStyle.ToInt64() & ~0x00040000); // Remove WS_EX_APPWINDOW
                 
                 SetWindowLong(Handle, (int)GetWindowLongFields.GWL_EXSTYLE, exStyle);
@@ -143,7 +181,7 @@ namespace Fenceless.Win32
                 // Move window to bottom to ensure it doesn't appear in Alt+Tab
                 SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
                 
-                Logger.Instance?.Debug("Successfully hidden window from Alt+Tab", "WindowUtil");
+                Logger.Instance?.Debug("Successfully hidden window from Alt+Tab and prevented Show Desktop minimize", "WindowUtil");
             }
             catch (Exception ex)
             {

@@ -25,7 +25,8 @@ An improved fork of [NoFences](https://github.com/Twometer/NoFences) - organize 
 ## Credits
 
 - Original [NoFences](https://github.com/Twometer/NoFences) by Twometer
-- Improved by [Damianttje](https://github.com/Damianttje)
+- Improved by [Damianttje](https://codeberg.org/damianttje) / [Wavestorm](https://codeberg.org/Wavestorm)
+
 
 ## Image
 ![Alt Text](https://d.damians.space/view/raw.php?id=ec4e82571de639ee.png)
