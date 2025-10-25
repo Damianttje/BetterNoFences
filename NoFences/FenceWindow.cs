@@ -577,14 +577,13 @@ namespace Fenceless
                 }
 
                 ShowWindow(Handle, SW_SHOWNOACTIVATE);
+                SendToDesktopBack();
 
                 if (!triggeredByMonitor)
                 {
                     logger?.Debug($"Fence window '{fenceInfo?.Name ?? "Unknown"}' restored after Show Desktop", "FenceWindow");
                 }
             }
-
-            SendToDesktopBack();
         }
 
         protected override void OnShown(EventArgs e)
