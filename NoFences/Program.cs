@@ -91,6 +91,11 @@ namespace Fenceless
                             logViewerMenuItem.Click += (s, e) => ShowLogViewer();
                             contextMenu.Items.Add(logViewerMenuItem);
                             
+                            // Add Settings menu item
+                            var settingsMenuItem = new ToolStripMenuItem("Settings");
+                            settingsMenuItem.Click += (s, e) => FenceManager.Instance.ShowGlobalSettings();
+                            contextMenu.Items.Add(settingsMenuItem);
+                            
                             contextMenu.Items.Add(new ToolStripSeparator());
                             
                             // Add Start with Windows checkbox
